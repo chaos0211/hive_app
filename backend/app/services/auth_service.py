@@ -1,19 +1,31 @@
 import hashlib
-
-# 简单内存用户表
-_users = {}
+from sqlalchemy.orm import Session
+from app.db.base import SessionLocal
+from app.db.models.user import User
 
 def sha1_hash(password: str) -> str:
     return hashlib.sha1(password.encode()).hexdigest()
 
-def register(username: str, password: str):
-    if username in _users:
-        return None
-    _users[username] = sha1_hash(password)
-    return {"username": username}
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-def login(username: str, password: str):
-    hashed = sha1_hash(password)
-    if username in _users and _users[username] == hashed:
-        return {"username": username}
+def register(db: Session, username: str, password: str):
+    if db.query(User).filter(User.username == username).first():
+        return None
+    user = User(username=username, password_sha1=sha1_hash(password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"username": user.username}
+
+def login(db: Session, username: str, password: str):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+    if user.password_sha1 == sha1_hash(password):
+        return {"username": user.username}
     return None
