@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- MySQL 元数据库配置 -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:mysql://host.docker.internal:33309/hive_metastore?createDatabaseIfNotExist=true&amp;useSSL=false&amp;characterEncoding=UTF-8&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.cj.jdbc.Driver</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive_pwd</value>
+  </property>
+
+  <!-- Hive 仓库目录 -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>file:///Users/chaos/Documents/science/2025.8/hive_app/hive-warehouse</value>
+  </property>
+
+  <!-- Metastore URI -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://localhost:9083</value>
+  </property>
+
+  <!-- 动态分区 -->
+  <property>
+    <name>hive.exec.dynamic.partition</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>hive.exec.dynamic.partition.mode</name>
+    <value>nonstrict</value>
+  </property>
+  <property>
+    <name>spark.sql.warehouse.dir</name>
+    <value>file:///Users/chaos/Documents/science/2025.8/hive_app/hive-warehouse</value>
+  </property>
+</configuration>

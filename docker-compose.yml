@@ -1,0 +1,15 @@
+services:
+  hive-metastore:
+    build: .                # 👈 改成本地构建
+    image: hive-metastore-arm64:3.1.3-hadoop
+    container_name: hive-metastore
+    environment:
+      HADOOP_HOME: /opt/hadoop
+    ports:
+      - "9083:9083"                 # 或者改成 19083:9083
+    volumes:
+      - ./conf/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./mysql-connector-j-8.0.33.jar:/opt/hive/lib/mysql-connector-j.jar:ro
+      - ./hive-warehouse:/user/hive/warehouse
+    command: ["/opt/hive/bin/hive", "--service", "metastore", "-p", "9083"]
+    restart: unless-stopped

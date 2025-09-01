@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen flex flex-col">
+  <div class="h-screen flex flex-col" @click="onRootClick">
     <header class="bg-white h-16 border-b border-light-100 px-4 md:px-6 flex items-center justify-between shadow-sm">
       <div class="flex items-center">
         <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-2">
@@ -13,12 +13,19 @@
           <input class="pl-10 pr-4 py-2 rounded-lg bg-light-100 border-0 outline-none text-sm w-64" placeholder="全局搜索..." />
         </div>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 relative">
         <button class="p-2 rounded-lg hover:bg-light-100 relative">
           <i class="fas fa-bell"></i>
           <span class="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"></span>
         </button>
-        <img class="w-8 h-8 rounded-full border" src="https://design.gemcoder.com/staticResource/echoAiSystemImages/b4836a22bb7346e0969480410c37b5b5.png" />
+        <button class="flex items-center focus:outline-none" @click.stop="toggleUserMenu" aria-label="User menu">
+          <img class="w-8 h-8 rounded-full border" src="https://design.gemcoder.com/staticResource/echoAiSystemImages/b4836a22bb7346e0969480410c37b5b5.png" />
+        </button>
+        <div v-if="showUserMenu" class="absolute right-0 top-10 mt-2 w-44 bg-white border border-light-100 rounded-lg shadow-dropdown z-50">
+          <div class="px-3 py-2 text-sm text-info border-b border-light-100">{{ currentUserLabel }}</div>
+          <button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-light-100" @click.stop="goProfile">个人信息（功能待添加）</button>
+          <button type="button" class="w-full text-left px-3 py-2 text-sm text-danger hover:bg-danger/5" @click.stop="logout">退出登录</button>
+        </div>
       </div>
     </header>
 
@@ -87,4 +94,33 @@
     </div>
   </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const showUserMenu = ref(false)
+const currentUserLabel = (localStorage.getItem('session_user') || '未登录')
+
+function toggleUserMenu() {
+  showUserMenu.value = !showUserMenu.value
+}
+function onRootClick() {
+  if (showUserMenu.value) showUserMenu.value = false
+}
+function goProfile() {
+  showUserMenu.value = false
+  alert('个人信息功能待添加')
+}
+function logout() {
+  localStorage.removeItem('session_user')
+  showUserMenu.value = false
+  router.push('/login')
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') showUserMenu.value = false
+}
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+</script>
