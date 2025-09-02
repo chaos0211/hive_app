@@ -9,7 +9,7 @@ cat > src/layouts/DefaultLayout.vue <<'VUE'
         <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-2">
           <i class="fas fa-chart-line text-primary"></i>
         </div>
-        <h1 class="text-lg font-semibold hidden md:block">华为应用榜单数据分析平台</h1>
+        <h1 class="text-lg font-semibold hidden md:block">手机应用榜单数据分析平台</h1>
       </div>
       <div class="hidden md:flex">
         <div class="relative">
@@ -37,7 +37,7 @@ cat > src/layouts/DefaultLayout.vue <<'VUE'
             </li>
             <li>
               <div class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-light-100 flex items-center justify-between cursor-pointer">
-                <div class="flex items-center"><i class="fas fa-list-ol w-5 h-5 mr-3 text-info"></i>华为应用榜单</div>
+                <div class="flex items-center"><i class="fas fa-list-ol w-5 h-5 mr-3 text-info"></i>手机应用榜单</div>
                 <i class="fas fa-chevron-down text-xs"></i>
               </div>
               <ul class="mt-1 ml-6 space-y-1">
@@ -184,12 +184,12 @@ onMounted(()=> {
   const chart = echarts.init(el.value!);
   chart.setOption({
     tooltip:{ trigger:"axis", axisPointer:{ type:"cross", label:{ backgroundColor:"#6a7985" }}},
-    legend:{ data:["华为应用市场","微信","抖音","支付宝","淘宝"], top:0 },
+    legend:{ data:["手机应用市场","微信","抖音","支付宝","淘宝"], top:0 },
     grid:{ left:"3%", right:"4%", bottom:"3%", containLabel:true },
     xAxis:[{ type:"category", boundaryGap:false, data:["6/10","6/11","6/12","6/13","6/14","6/15","6/16"]}],
     yAxis:[{ type:"value", max:20, inverse:true }],
     series:[
-      { name:"华为应用市场", type:"line", stack:"Total", areaStyle:{}, data:[1,1,1,1,1,1,1] },
+      { name:"手机应用市场", type:"line", stack:"Total", areaStyle:{}, data:[1,1,1,1,1,1,1] },
       { name:"微信", type:"line", stack:"Total", areaStyle:{}, data:[2,2,3,2,2,2,2] },
       { name:"抖音", type:"line", stack:"Total", areaStyle:{}, data:[3,3,2,3,3,3,3] },
       { name:"支付宝", type:"line", stack:"Total", areaStyle:{}, data:[4,4,4,4,5,4,4] },
@@ -292,7 +292,7 @@ cat > src/views/Cockpit.vue <<'VUE'
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
       <KpiCard title="昨日采集量" value="12,845" :delta="8.2" base="前日" icon="fa-database" iconBg="bg-primary/10 text-primary"/>
       <KpiCard title="有效分区数" value="248" :delta="2.1" base="上周" icon="fa-cubes" iconBg="bg-secondary/10 text-secondary"/>
-      <KpiCard title="Top1 应用" value="华为应用市场" sub="工具类 · 评分 4.8" icon="fa-trophy" iconBg="bg-success/10 text-success"/>
+      <KpiCard title="Top1 应用" value="手机应用市场" sub="工具类 · 评分 4.8" icon="fa-trophy" iconBg="bg-success/10 text-success"/>
       <KpiCard title="Top 类目" value="游戏" sub="占比 32.5% · 128款应用" icon="fa-gamepad" iconBg="bg-warning/10 text-warning"/>
       <KpiCard title="预测覆盖率" value="89.7%" :delta="-1.3" base="上周" icon="fa-chart-line" iconBg="bg-primary/10 text-primary"/>
       <KpiCard title="任务成功率" value="96.2%" :delta="0.8" base="上周" icon="fa-check-circle" iconBg="bg-success/10 text-success"/>

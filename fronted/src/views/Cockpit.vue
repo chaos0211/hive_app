@@ -10,7 +10,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
       <KpiCard title="昨日采集量" value="12,845" :delta="8.2" base="前日" icon="fa-database" iconBg="bg-primary/10 text-primary"/>
       <KpiCard title="有效分区数" value="248" :delta="2.1" base="上周" icon="fa-cubes" iconBg="bg-secondary/10 text-secondary"/>
-      <KpiCard title="Top1 应用" value="华为应用市场" sub="工具类 · 评分 4.8" icon="fa-trophy" iconBg="bg-success/10 text-success"/>
+      <KpiCard title="Top1 应用" value="手机应用市场" sub="工具类 · 评分 4.8" icon="fa-trophy" iconBg="bg-success/10 text-success"/>
       <KpiCard title="Top 类目" value="游戏" sub="占比 32.5% · 128款应用" icon="fa-gamepad" iconBg="bg-warning/10 text-warning"/>
       <KpiCard title="预测覆盖率" value="89.7%" :delta="-1.3" base="上周" icon="fa-chart-line" iconBg="bg-primary/10 text-primary"/>
       <KpiCard title="任务成功率" value="96.2%" :delta="0.8" base="上周" icon="fa-check-circle" iconBg="bg-success/10 text-success"/>

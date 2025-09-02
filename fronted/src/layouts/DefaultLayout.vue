@@ -5,7 +5,7 @@
         <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-2">
           <i class="fas fa-chart-line text-primary"></i>
         </div>
-        <h1 class="text-lg font-semibold hidden md:block">华为应用榜单数据分析平台</h1>
+        <h1 class="text-lg font-semibold hidden md:block">手机应用榜单数据分析平台</h1>
       </div>
       <div class="hidden md:flex">
         <div class="relative">
@@ -40,12 +40,18 @@
             </li>
             <li>
               <div class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-light-100 flex items-center justify-between cursor-pointer">
-                <div class="flex items-center"><i class="fas fa-list-ol w-5 h-5 mr-3 text-info"></i>华为应用榜单</div>
+                <div class="flex items-center"><i class="fas fa-list-ol w-5 h-5 mr-3 text-info"></i>手机应用榜单</div>
                 <i class="fas fa-chevron-down text-xs"></i>
               </div>
               <ul class="mt-1 ml-6 space-y-1">
-                <li><a class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">榜单列表</a></li>
-                <li><a class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">应用对比</a></li>
+                <li>
+                  <RouterLink to="/ranking" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">
+                    榜单列表
+                  </RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">应用对比</RouterLink>
+                </li>
               </ul>
             </li>
             <li>
@@ -53,6 +59,20 @@
                 <div class="flex items-center"><i class="fas fa-chart-pie w-5 h-5 mr-3 text-info"></i>数据分析</div>
                 <i class="fas fa-chevron-down text-xs"></i>
               </div>
+              <ul class="mt-1 ml-6 space-y-1">
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">总览</RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">分类维度</RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">地区维度</RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">关键字</RouterLink>
+                </li>
+              </ul>
             </li>
             <li>
               <div class="px-3 py-2 text-sm font-medium rounded-lg hover:bg-light-100 flex items-center justify-between cursor-pointer">
@@ -60,8 +80,12 @@
                 <i class="fas fa-chevron-down text-xs"></i>
               </div>
               <ul class="mt-1 ml-6 space-y-1">
-                <li><a class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">新建预测</a></li>
-                <li><a class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">预测记录</a></li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">新建预测</RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">预测记录</RouterLink>
+                </li>
               </ul>
             </li>
             <li>
@@ -69,11 +93,22 @@
                 <div class="flex items-center"><i class="fas fa-database w-5 h-5 mr-3 text-info"></i>Hive 数据</div>
                 <i class="fas fa-chevron-down text-xs"></i>
               </div>
+              <ul class="mt-1 ml-6 space-y-1">
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">任务中心</RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">数据质量</RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">分区预览</RouterLink>
+                </li>
+              </ul>
             </li>
             <li>
-              <a class="flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-light-100">
+              <RouterLink to="/cockpit" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-light-100">
                 <i class="fas fa-users w-5 h-5 mr-3 text-info"></i> 用户管理
-              </a>
+              </RouterLink>
             </li>
           </ul>
         </nav>
@@ -124,3 +159,8 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(() => document.addEventListener('keydown', onKeydown))
 onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 </script>
+<style>
+.router-link-exact-active {
+  @apply bg-primary/10 text-primary;
+}
+</style>

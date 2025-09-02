@@ -3,6 +3,7 @@ import DefaultLayout from "@/layouts/DefaultLayout.vue";
 import Login from "@/views/Login.vue";
 import Register from "@/views/Register.vue";
 import Cockpit from "@/views/Cockpit.vue";
+import RankingList from "@/views/RankingList.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/login" },
@@ -12,7 +13,8 @@ const routes: RouteRecordRaw[] = [
     path: "/",
     component: DefaultLayout,
     children: [
-      { path: "/cockpit", component: Cockpit }
+      { path: "/cockpit", component: Cockpit },
+      { path: "/ranking", component: RankingList }
     ]
   }
 ];

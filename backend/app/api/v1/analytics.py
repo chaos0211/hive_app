@@ -7,7 +7,7 @@ def kpis():
     return {
         "collect_yesterday": 12845,
         "partitions": 248,
-        "top_app": {"name":"华为应用市场","rating":4.8,"category":"工具"},
+        "top_app": {"name":"手机应用市场","rating":4.8,"category":"工具"},
         "top_category": {"name":"游戏","share":"32.5%","apps":128},
         "predict_cover": 89.7,
         "task_success": 96.2
@@ -17,7 +17,7 @@ def kpis():
 def topn_trend(days:int=7, top:int=5):
     x = ["6/10","6/11","6/12","6/13","6/14","6/15","6/16"]
     return {"x": x, "series": {
-        "华为应用市场":[1,1,1,1,1,1,1],
+        "手机应用市场":[1,1,1,1,1,1,1],
         "微信":[2,2,3,2,2,2,2],
         "抖音":[3,3,2,3,3,3,3],
         "支付宝":[4,4,4,4,5,4,4],

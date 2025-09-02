@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, analytics
+from app.api.v1 import auth, analytics,rankings
 
 app = FastAPI(title="Huawei App Dashboard API", version="0.1.0")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(auth.router)
 app.include_router(analytics.router)
+app.include_router(rankings.router)
 
 @app.get("/health")
 def health():
