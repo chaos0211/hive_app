@@ -50,7 +50,7 @@
                   </RouterLink>
                 </li>
                 <li>
-                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">应用对比</RouterLink>
+                  <RouterLink to="/app-compare" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">应用对比</RouterLink>
                 </li>
               </ul>
             </li>
