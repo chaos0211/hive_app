@@ -1,10 +1,11 @@
 # api/rankings.py
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Dict, List, Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import and_, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -159,6 +160,180 @@ async def get_rankings(
         "page": page,
         "page_size": page_size,
     }
+
+def _parse_app_ids(v: Optional[str], repeats: List[str]) -> List[str]:
+    # 支持逗号分隔和重复参数
+    collected = []
+    if v:
+        collected += [x.strip() for x in v.split(",") if x.strip()]
+    for r in repeats:
+        collected += [x.strip() for x in r.split(",") if x.strip()]
+    # 去重保持顺序
+    seen = set()
+    out = []
+    for a in collected:
+        if a not in seen:
+            seen.add(a)
+            out.append(a)
+    return out
+
+@router.get("/rankings/trend")
+async def rankings_trend(
+    app_ids: Optional[str] = Query(None, description="逗号分隔的 app_id 列表"),
+    app_ids_repeat: List[str] = Query([], alias="app_ids"),
+    country: str = Query(...),
+    device: str = Query(...),
+    brand_id: Optional[int] = Query(None, ge=0, le=2),
+    window: Optional[int] = Query(7, ge=1, le=365),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    fill_missing: bool = Query(True),
+    max_points: int = Query(370),
+    session: AsyncSession = Depends(get_session),
+) -> Dict[str, Any]:
+    # 解析 app_ids
+    ids = _parse_app_ids(app_ids, app_ids_repeat)
+    if not ids:
+        raise HTTPException(status_code=400, detail="app_ids 不能为空")
+
+    # 校验时间窗口互斥
+    if window and (date_from or date_to):
+        raise HTTPException(status_code=400, detail="window 与 date_from/date_to 不能同时使用")
+
+    if window:
+        date_to = date.today()
+        date_from = date_to - timedelta(days=window - 1)
+    else:
+        # 显式范围必须成对
+        if bool(date_from) ^ bool(date_to):
+            raise HTTPException(status_code=400, detail="date_from 与 date_to 需同时提供")
+        if not date_from or not date_to:
+            # 兜底：默认近7天
+            date_to = date.today()
+            date_from = date_to - timedelta(days=6)
+
+    # 限制点数规模
+    span_days = (date_to - date_from).days + 1
+    if span_days * len(ids) > max_points:
+        raise HTTPException(
+            status_code=400,
+            detail=f"请求点数过多：{span_days}天 × {len(ids)} apps > {max_points}，请缩小范围或减少应用数",
+        )
+
+    # —— 查询每个 app 的时间序列 ——
+    where_base = [
+        AppStoreRankingDaily.country == country,
+        AppStoreRankingDaily.device == device,
+        AppStoreRankingDaily.app_id.in_(ids),
+        AppStoreRankingDaily.chart_date.between(date_from, date_to),
+    ]
+    # brand 过滤 / 聚合
+    if brand_id is None:
+        # 不限定 brand：同日取最优名次（min(ranking)）
+        stmt = (
+            select(
+                AppStoreRankingDaily.app_id.label("app_id"),
+                AppStoreRankingDaily.chart_date.label("chart_date"),
+                func.min(AppStoreRankingDaily.ranking).label("ranking"),
+            )
+            .where(*where_base)
+            .group_by(AppStoreRankingDaily.app_id, AppStoreRankingDaily.chart_date)
+            .order_by(AppStoreRankingDaily.app_id.asc(), AppStoreRankingDaily.chart_date.asc())
+        )
+    else:
+        stmt = (
+            select(
+                AppStoreRankingDaily.app_id.label("app_id"),
+                AppStoreRankingDaily.chart_date.label("chart_date"),
+                AppStoreRankingDaily.ranking.label("ranking"),
+            )
+            .where(*where_base, AppStoreRankingDaily.brand_id == brand_id)
+            .order_by(AppStoreRankingDaily.app_id.asc(), AppStoreRankingDaily.chart_date.asc())
+        )
+
+    res = await session.execute(stmt)
+    rows = res.all()  # [(app_id, chart_date, ranking), ...]
+
+    # 构建 {app_id: {date: ranking}}
+    series_map: Dict[str, Dict[date, Optional[int]]] = {a: {} for a in ids}
+    for app_id, d, r in rows:
+        # r 可能为 None
+        series_map.setdefault(app_id, {})[d] = r
+
+    # —— 为卡片取 app 显示信息（范围内最近一条） ——
+    meta_map: Dict[str, Dict[str, Optional[str]]] = {a: {} for a in ids}
+    for a in ids:
+        sub_max = (
+            select(func.max(AppStoreRankingDaily.chart_date))
+            .where(
+                AppStoreRankingDaily.app_id == a,
+                AppStoreRankingDaily.country == country,
+                AppStoreRankingDaily.device == device,
+                AppStoreRankingDaily.chart_date.between(date_from, date_to),
+            )
+            .scalar_subquery()
+        )
+        meta_stmt = (
+            select(
+                AppStoreRankingDaily.app_name,
+                AppStoreRankingDaily.icon_url,
+                AppStoreRankingDaily.publisher,
+            )
+            .where(
+                AppStoreRankingDaily.app_id == a,
+                AppStoreRankingDaily.country == country,
+                AppStoreRankingDaily.device == device,
+                AppStoreRankingDaily.chart_date == sub_max,
+            )
+            .limit(1)
+        )
+        meta_res = await session.execute(meta_stmt)
+        row = meta_res.first()
+        if row:
+            meta_map[a] = {
+                "app_name": row[0],
+                "icon_url": row[1],
+                "publisher": row[2],
+            }
+        else:
+            # 范围内无记录：留空
+            meta_map[a] = {"app_name": None, "icon_url": None, "publisher": None}
+
+    # —— 生成完整 points ——
+    all_dates = [date_from + timedelta(days=i) for i in range(span_days)]
+    series: List[Dict[str, Any]] = []
+    for a in ids:
+        name = meta_map[a].get("app_name")
+        icon = meta_map[a].get("icon_url")
+        pub  = meta_map[a].get("publisher")
+        day_map = series_map.get(a, {})
+
+        if fill_missing:
+            pts = [[d.isoformat(), day_map.get(d, None)] for d in all_dates]
+        else:
+            pts = [[d.isoformat(), day_map[d]] for d in sorted(day_map.keys())]
+
+        series.append({
+            "app_id": a,
+            "app_name": name,
+            "icon_url": icon,
+            "publisher": pub,
+            "points": pts,
+        })
+
+    payload = {
+        "meta": {
+            "country": country,
+            "device": device,
+            "brand_id": brand_id,
+            "date_from": date_from.isoformat(),
+            "date_to": date_to.isoformat(),
+            "window": window or span_days,
+            "fill_missing": fill_missing,
+        },
+        "series": series,
+    }
+    return jsonable_encoder(payload)
 
 
 # --- Optional: direct invocation for quick local test ---
