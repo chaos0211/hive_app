@@ -11,10 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.base import get_session
 from app.db.models.ranking import AppStoreRankingDaily
 
-try:
-    from app.db.models.app import AppInfo  # 可选：应用元数据(如不存在则跳过)
-except Exception:
-    AppInfo = None  # type: ignore
+# try:
+#     from app.db.models.app import AppInfo  # 可选：应用元数据(如不存在则跳过)
+# except Exception:
+#     AppInfo = None  # type: ignore
 
 router = APIRouter(prefix="/api/v1", tags=["apps"])
 

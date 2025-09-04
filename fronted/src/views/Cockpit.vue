@@ -1,17 +1,30 @@
 <template>
   <div>
     <div class="mb-6">
-      <h1 class="text-[clamp(1.25rem,3vw,1.75rem)] font-bold">驾驶舱</h1>
+      <h1 class="text-[clamp(1.25rem,3vw,1.75rem)] font-bold">首页总览</h1>
       <p class="text-info mt-1">应用榜单数据分析概览</p>
     </div>
 
     <FilterBar class="mb-6" />
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-      <KpiCard title="昨日采集量" value="12,845" :delta="8.2" base="前日" icon="fa-database" iconBg="bg-primary/10 text-primary"/>
+      <KpiCard title="昨日采集量"
+               :value="collectionCountStr"
+               :delta="collectionDelta"
+               base="前日"
+               icon="fa-database"
+               iconBg="bg-primary/10 text-primary"/>
       <KpiCard title="有效分区数" value="248" :delta="2.1" base="上周" icon="fa-cubes" iconBg="bg-secondary/10 text-secondary"/>
-      <KpiCard title="Top1 应用" value="手机应用市场" sub="工具类 · 评分 4.8" icon="fa-trophy" iconBg="bg-success/10 text-success"/>
-      <KpiCard title="Top 类目" value="游戏" sub="占比 32.5% · 128款应用" icon="fa-gamepad" iconBg="bg-warning/10 text-warning"/>
+      <KpiCard title="Top1 应用"
+               :value="top1NameDisplay"
+               :sub="top1SubDisplay"
+               icon="fa-trophy"
+               iconBg="bg-success/10 text-success"/>
+      <KpiCard title="Top 类目"
+               :value="topCategoryNameDisplay"
+               :sub="topCategorySubDisplay"
+               icon="fa-gamepad"
+               iconBg="bg-warning/10 text-warning"/>
       <KpiCard title="预测覆盖率" value="89.7%" :delta="-1.3" base="上周" icon="fa-chart-line" iconBg="bg-primary/10 text-primary"/>
       <KpiCard title="任务成功率" value="96.2%" :delta="0.8" base="上周" icon="fa-check-circle" iconBg="bg-success/10 text-success"/>
     </div>
@@ -113,4 +126,101 @@ import TrendChart from "@/components/charts/TrendChart.vue";
 import CategoryPie from "@/components/charts/CategoryPie.vue";
 import RegionHeat from "@/components/charts/RegionHeat.vue";
 import TaskGantt from "@/components/charts/TaskGantt.vue";
+
+import { ref, computed, onMounted } from 'vue'
+import http from '@/api/http'
+
+// ===== 首页总览（Cockpit）KPI 对接状态 =====
+const collectionCount = ref<number | null>(null)
+const collectionDelta = ref<number>(0)
+
+const top1Name = ref<string>('')
+const top1Genre = ref<string>('')
+const top1Publisher = ref<string>('')
+
+const topCategoryName = ref<string>('')
+const topCategoryRatio = ref<number | null>(null) // 百分比 (0-100)
+const topCategoryCount = ref<number | null>(null)
+
+// 展示格式化
+const collectionCountStr = computed(() =>
+  typeof collectionCount.value === 'number' ? collectionCount.value.toLocaleString() : '--'
+)
+
+const truncate = (s: string, n: number) => {
+  if (!s) return ''
+  return s.length > n ? s.slice(0, n) + '…' : s
+}
+
+const top1Sub = computed(() => {
+  const parts: string[] = []
+  if (top1Genre.value) parts.push(top1Genre.value)
+  if (top1Publisher.value) parts.push(top1Publisher.value)
+  return parts.join(' · ')
+})
+
+const topCategorySub = computed(() => {
+  const pieces: string[] = []
+  if (typeof topCategoryRatio.value === 'number') pieces.push(`占比 ${topCategoryRatio.value.toFixed(1)}%`)
+  if (typeof topCategoryCount.value === 'number') pieces.push(`${topCategoryCount.value}款应用`)
+  return pieces.join(' · ')
+})
+
+// 控制显示长度，避免溢出
+const top1NameDisplay = computed(() => truncate(top1Name.value || '', 5))
+const top1SubDisplay = computed(() => truncate(top1Sub.value || '', 20))
+
+const topCategoryNameDisplay = computed(() => truncate(topCategoryName.value || '', 8))
+const topCategorySubDisplay = computed(() => truncate(topCategorySub.value || '', 24))
+
+// ===== 加载函数 =====
+async function loadCollectionKpi() {
+  try {
+    const { data } = await http.get('/api/v1/meta/overview/collection')
+    // 预期后端返回：{ date:'YYYY-MM-DD', count:number, delta_percent:number }
+    collectionCount.value = Number(data?.count ?? 0)
+    collectionDelta.value = Number(data?.delta_percent ?? 0)
+  } catch (e) {
+    // 保持静默，不阻塞页面
+    collectionCount.value = null
+    collectionDelta.value = 0
+  }
+}
+
+async function loadTop1Kpi() {
+  try {
+    const { data } = await http.get('/api/v1/meta/overview/top1')
+    // 预期：{ app_name, app_genre, publisher }
+    top1Name.value = data?.app_name || ''
+    top1Genre.value = data?.app_genre || ''
+    top1Publisher.value = data?.publisher || ''
+  } catch (e) {
+    top1Name.value = ''
+    top1Genre.value = ''
+    top1Publisher.value = ''
+  }
+}
+
+async function loadTopCategoryKpi() {
+  try {
+    const { data } = await http.get('/api/v1/meta/overview/top_category')
+    // 预期：{ app_genre, count, ratio }
+    topCategoryName.value = data?.app_genre || ''
+    topCategoryCount.value = typeof data?.count === 'number' ? data.count : null
+    const ratio = Number(data?.ratio)
+    topCategoryRatio.value = isNaN(ratio) ? null : ratio
+  } catch (e) {
+    topCategoryName.value = ''
+    topCategoryCount.value = null
+    topCategoryRatio.value = null
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    loadCollectionKpi(),
+    loadTop1Kpi(),
+    loadTopCategoryKpi(),
+  ])
+})
 </script>

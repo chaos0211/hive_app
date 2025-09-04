@@ -1,7 +1,7 @@
 <template>
   <div class="qimai-app-compare">
     <div class="header">
-      <h1 class="main-title">七麦数据 - 竞品对比分析</h1>
+      <h1 class="main-title"> app对比分析</h1>
       <div class="sub-header">
         <h2>竞品对比分析</h2>
         <p>全面对比不同应用的市场表现与用户反馈</p>
@@ -325,49 +325,18 @@
               <button class="period-btn" :class="{ active: trendWindow===365 }" @click="setTrendWindow(365)">近一年</button>
             </div>
           </div>
-          <div class="chart-container" style="position:relative; min-height:260px; overflow-x:auto;">
-            <div v-if="trendLoading" class="chart-placeholder">加载中…</div>
-            <div v-else-if="trendError" class="chart-placeholder">{{ trendError }}</div>
-            <div v-else-if="!trendDates.length || !trendSeries.length" class="chart-placeholder">暂无数据</div>
-
-            <svg v-else :width="chartWidth" :height="chartHeight" :viewBox="`0 0 ${chartWidth} ${chartHeight}`">
-              <!-- Y 轴网格 & 刻度（显示具体排名数值） -->
-                  <g font-size="10" fill="#888">
-                    <g v-for="(t, ti) in yTicks" :key="'yt-'+ti">
-                      <line :x1="chartPaddingX" :x2="chartWidth - chartPaddingX" :y1="t.y" :y2="t.y" stroke="#eee" />
-                      <text :x="chartPaddingX - 6" :y="t.y + 3" text-anchor="end">{{ t.label }}</text>
-                    </g>
-                  </g>
-
-                  <!-- X 轴刻度：最多 7 段 -->
-                  <g font-size="10" fill="#888">
-                    <text v-for="(tx, i) in xTicks" :key="'xt-'+i" :x="tx.x" y="295" :text-anchor="tx.anchor">{{ tx.label }}</text>
-                  </g>
-
-                  <!-- 边框 -->
-                  <rect :x="chartPaddingX" y="10" :width="chartWidth - chartPaddingX*2" height="260" fill="none" stroke="#eee" />
-
-                  <!-- 各应用的平均值虚线（仅基于有数据的点） -->
-                  <g v-for="(s, si) in trendSeries" :key="'avg-'+s.app_id">
-                    <line :x1="chartPaddingX" :x2="chartWidth - chartPaddingX" :y1="avgY(si)" :y2="avgY(si)"
-                          :stroke="seriesColor(si)" stroke-dasharray="4 4" opacity="0.5" />
-                  </g>
-
-                  <!-- 多条折线（跳过缺失点，连线不断） -->
-              <g v-for="(s, si) in trendSeries" :key="s.app_id">
-                <path
-                  v-for="(d, di) in buildPaths(s.points)"
-                  :key="di"
-                  :d="d"
-                  fill="none"
-                  :stroke="seriesColor(si)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </g>
-            </svg>
-          </div>
+            <div class="chart-container">
+              <RankTrendChart
+              :dates="trendDates"
+              :series="trendSeries"
+              :loading="trendLoading"
+              :error="trendError"
+              :width="chartWidth"
+              :height="chartHeight"
+              :padding="chartPaddingX"
+              :showAverage="true"
+          />
+            </div>
         </div>
       </div>
     </div>
@@ -377,6 +346,7 @@
 <script>
 import '@/assets/app-compare.css'
 import http from '@/api/http'
+import RankTrendChart from '@/components/charts/RankTrendChart.vue'
 export default {
   watch: {
   selectedCountry() { this.fetchTrend() },
@@ -388,6 +358,7 @@ export default {
   }
 },
   name: 'AppCompare',
+  components: { RankTrendChart },
   data() {
     return {
       currentTab: '应用信息',
@@ -410,12 +381,6 @@ export default {
       chartWidth: 800,
       chartHeight: 300,
       chartPaddingX: 20,
-      pxPerPoint: 18,
-      xTicks: [],
-      yTicks: [],
-      yMin: 1,
-      yMax: 10,
-      fixedWidth: 800,
       infoFields: [
         { key: 'app_name', label: '应用标题' },
         { key: 'publisher', label: '公司' },
@@ -615,10 +580,6 @@ export default {
           const series = Array.isArray(payload.series) ? payload.series : []
           this.trendDates = series.length ? series[0].points.map(p => p[0]) : []
           this.trendSeries = series
-          // 固定宽度，横轴不超过边框长度
-          this.chartWidth = this.fixedWidth
-          // 计算坐标轴与刻度
-          this.computeScales()
         } catch (e) {
           console.error('加载排名趋势失败', e)
           this.trendError = '加载失败'
@@ -632,118 +593,8 @@ export default {
         const palette = ['#5470C6', '#91CC75', '#FAC858', '#EE6666', '#73C0DE', '#3BA272']
         return palette[i % palette.length]
       },
-      buildPaths(points) {
-        // 将 [date, rank|null] 序列转为多段路径字符串，遇 null 断开
-        const w  = this.chartWidth - this.chartPaddingX * 2
-        const h  = 260
-        const ox = this.chartPaddingX, oy = 10
-        const xs = this.trendDates
-        if (!xs || !xs.length) return []
-
-        // 计算全局最大名次，名次越小越靠上；给个下限 10
-        let maxRank = 0
-        for (const s of this.trendSeries) {
-          for (const p of s.points) {
-            const r = p[1]
-            if (typeof r === 'number' && r > maxRank) maxRank = r
-          }
-        }
-        if (maxRank < 10) maxRank = 10
-
-        const dx = xs.length > 1 ? w / (xs.length - 1) : 0
-        const paths = []
-        let seg = ''
-        let open = false
-
-        for (let i = 0; i < xs.length; i++) {
-          const r = points[i] ? points[i][1] : null
-          const x = ox + i * dx
-          if (r === null || r === undefined) {
-            // 跳过缺失点，不中断折线（直接跨过去）
-            continue
-          }
-          const y = oy + (r - 1) / (maxRank - 1) * h  // rank=1 在顶部
-          if (!open) {
-            seg = `${x},${y}`
-            open = true
-          } else {
-            seg += ` L${x},${y}`
-          }
-        }
-        if (seg) paths.push(`M${seg}`)
-        return paths
-      },
-    computeScales() {
-  // 计算 y 范围（仅用有数据的排名）
-  let minR = Infinity, maxR = -Infinity
-  for (const s of this.trendSeries) {
-    for (const [, r] of s.points) {
-      if (typeof r === 'number') {
-        if (r < minR) minR = r
-        if (r > maxR) maxR = r
-      }
-    }
-  }
-  if (!isFinite(minR) || !isFinite(maxR)) { minR = 1; maxR = 10 }
-  if (minR === maxR) maxR = minR + 1
-  this.yMin = Math.max(1, Math.floor(minR))
-  this.yMax = Math.ceil(maxR)
-
-  // 5 条水平网格线（含上下边）
-  const lines = 5
-  const innerH = 260, topY = 10
-  const ys = []
-  for (let i = 0; i < lines; i++) {
-    const t = i/(lines-1)                    // 0..1 自上而下
-    const rank = this.yMin + (this.yMax - this.yMin) * (1 - t)
-    const y = topY + t * innerH
-    ys.push({ y, label: Math.round(rank) })
-  }
-  this.yTicks = ys
-
-  // X 轴：最多 7 段（7天逐日；<=30 每4天；其余按等分）
-  const n = this.trendDates.length
-  this.xTicks = []
-  if (!n) return
-  let step
-  if (n <= 7) step = 1
-  else if (n <= 30) step = 4
-  else step = Math.ceil(n / 7)
-
-  const w = this.chartWidth - this.chartPaddingX*2
-  const dx = n>1 ? w/(n-1) : 0
-  const last = n - 1
-
-  for (let i = 0; i < n; i += step) {
-    const x = this.chartPaddingX + i*dx
-    const label = this.trendDates[i]
-    this.xTicks.push({ x, label, anchor:'middle' })
-  }
-  // 确保包含最后一天
-  if (this.xTicks[this.xTicks.length-1]?.label !== this.trendDates[last]) {
-    const x = this.chartPaddingX + last*dx
-    this.xTicks.push({ x, label: this.trendDates[last], anchor:'end' })
-  } else {
-    if (this.xTicks.length) {
-      this.xTicks[0].anchor = 'start'
-      this.xTicks[this.xTicks.length-1].anchor = 'end'
-    }
-  }
-},
 
 // 各应用平均排名的 Y 坐标（仅用有数据的点）
-avgY(seriesIndex) {
-  const s = this.trendSeries[seriesIndex]
-  if (!s) return 0
-  let sum = 0, cnt = 0
-  for (const [, r] of s.points) {
-    if (typeof r === 'number') { sum += r; cnt++ }
-  }
-  const avg = cnt ? sum / cnt : (this.yMin + this.yMax) / 2
-  const innerH = 260, topY = 10
-  const t = (avg - this.yMin) / (this.yMax - this.yMin)  // 0..1 自上而下
-  return topY + t * innerH
-},
   }
 ,
   computed: {

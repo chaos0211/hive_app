@@ -35,7 +35,7 @@
           <ul class="space-y-1">
             <li>
               <RouterLink to="/cockpit" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-primary/10 text-primary">
-                <i class="fas fa-tachometer-alt w-5 h-5 mr-3"></i> 驾驶舱
+                <i class="fas fa-tachometer-alt w-5 h-5 mr-3"></i> 首页总览
               </RouterLink>
             </li>
             <li>
