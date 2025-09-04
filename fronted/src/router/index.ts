@@ -15,7 +15,8 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: "/cockpit", component: Cockpit },
       { path: "/ranking", component: RankingList },
-      { path: '/app-compare', component: () => import('@/views/AppCompare.vue'), meta: { title: '应用对比' } }
+      { path: '/app-compare', component: () => import('@/views/AppCompare.vue'), meta: { title: '应用对比' } },
+      { path: '/bigscreen', component: () => import('@/views/BigScreen.vue'), meta: { title: '可视化大屏' } }
     ]
   }
 ];

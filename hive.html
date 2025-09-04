@@ -1,8 +1,8 @@
 <html lang="zh-CN">
   <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>七麦数据 - 竞品对比分析</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>应用榜单数据大屏</title>
     <script src="https://res.gemcoder.com/js/reload.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -15,27 +15,19 @@
                   theme: {
                       extend: {
                           colors: {
-                              primary: '#3E63DD',
-                              secondary: '#FF7D00',
-                              dark: '#1D2129',
-                              'gray-100': '#F2F3F5',
-                              'gray-200': '#E5E6EB',
-                              'gray-300': '#C9CDD4',
-                              'gray-400': '#86909C',
-                              'gray-500': '#4E5969',
-                              'gray-600': '#272E3B',
-                              success: '#00B42A',
-                              warning: '#FF7D00',
-                              danger: '#F53F3F',
+                              primary: '#0F2E58',
+                              secondary: '#0A1931',
+                              accent: '#16C2D5',
+                              success: '#00CF95',
+                              warning: '#FFC107',
+                              danger: '#FF5252',
+                              dark: '#051024',
+                              'dark-light': '#1E293B'
                           },
                           fontFamily: {
-                              sans: ['Inter', 'system-ui', 'sans-serif'],
-                          },
-                          boxShadow: {
-                              'card': '0 2px 8px 0 rgba(0, 0, 0, 0.08)',
-                              'dropdown': '0 4px 16px 0 rgba(0, 0, 0, 0.12)',
+                              inter: ['Inter', 'sans-serif']
                           }
-                      },
+                      }
                   }
               }
     </script>
@@ -44,1043 +36,682 @@
           .content-auto {
               content-visibility: auto;
           }
-          .scrollbar-hide {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
+          .text-shadow {
+              text-shadow: 0 0 8px rgba(22, 194, 213, 0.5);
           }
-          .scrollbar-hide::-webkit-scrollbar {
-              display: none;
+          .bg-grid {
+              background-image: radial-gradient(rgba(22, 194, 213, 0.1) 1px, transparent 1px);
+              background-size: 20px 20px;
           }
-          .tab-active {
-              @apply border-b-2 border-primary text-primary font-medium;
+          .card-glow {
+              box-shadow: 0 0 15px rgba(22, 194, 213, 0.15);
           }
-          .text-balance {
-              text-wrap: balance;
+          .gradient-border {
+              position: relative;
+              border-radius: 0.5rem;
+              z-index: 0;
+          }
+          .gradient-border::before {
+              content: "";
+              position: absolute;
+              inset: 0;
+              border-radius: 0.5rem;
+              padding: 1px;
+              background: linear-gradient(45deg, #16C2D5, #00CF95);
+              -webkit-mask:
+                  linear-gradient(#fff 0 0) content-box,
+                  linear-gradient(#fff 0 0);
+              -webkit-mask-composite: xor;
+              mask-composite: exclude;
+              z-index: -1;
           }
       }
     </style>
   </head>
-  <body class="bg-gray-100 font-sans text-gray-600 min-h-screen flex flex-col">
+  <body class="bg-secondary text-gray-200 font-inter min-h-screen bg-grid">
     <!-- 顶部导航栏 -->
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-      <div class="container mx-auto px-4 sm:px-6 lg:px-8"></div>
+    <header
+      class="bg-primary/80 backdrop-blur-md border-b border-accent/20 sticky top-0 z-50"
+    >
+      <div
+        class="container mx-auto px-4 py-3 flex items-center justify-between"
+      >
+        <div class="flex items-center space-x-3">
+          <div
+            class="w-10 h-10 rounded-lg bg-gradient-to-br from-accent to-success flex items-center justify-center"
+          >
+            <i class="fas fa-cloud text-white text-xl"> </i>
+          </div>
+          <h1
+            class="text-[clamp(1.2rem,3vw,1.5rem)] font-bold text-white text-shadow"
+          >
+            云管理平台数据大屏
+          </h1>
+        </div>
+        <div class="flex items-center space-x-6">
+          <div class="hidden md:flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <i class="fas fa-calendar-alt text-accent"> </i>
+              <span id="current-date" class="text-sm"> </span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <i class="fas fa-clock text-accent"> </i>
+              <span id="current-time" class="text-sm"> </span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button
+              class="w-9 h-9 rounded-full bg-dark-light flex items-center justify-center hover:bg-accent/20 transition-colors"
+            >
+              <i class="fas fa-bell text-gray-300"> </i>
+            </button>
+            <div class="flex items-center space-x-2">
+              <img
+                src="https://design.gemcoder.com/staticResource/echoAiSystemImages/56618f14ad2edddada7a9b5466558bb3.png"
+                alt="用户头像"
+                class="w-9 h-9 rounded-full object-cover border-2 border-accent/50"
+              />
+              <span class="hidden md:inline text-sm font-medium"> 管理员 </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </header>
-    <!-- 主内容区 -->
-    <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <!-- 页面标题和操作区 -->
-      <div class="mb-6">
-        <div
-          class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4"
-        >
-          <div>
-            <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-dark">
-              竞品对比分析
-            </h1>
-            <p class="text-gray-400 mt-1">
-              全面对比不同应用的市场表现与用户反馈
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <div class="relative">
-              <select
-                class="appearance-none bg-white border border-gray-200 rounded-md py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-              >
-                <option>中国区</option>
-                <option>美国区</option>
-                <option>日本区</option>
-                <option>韩国区</option>
-              </select>
-              <div
-                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400"
-              >
-                <i class="fas fa-chevron-down text-xs"> </i>
-              </div>
+    <!-- 主要内容区域 -->
+    <main class="container mx-auto px-4 py-6">
+      <!-- 概览统计卡片 -->
+      <section
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+      >
+        <!-- 订单总数 -->
+        <div class="bg-primary/50 rounded-lg p-4 gradient-border card-glow">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-gray-400 text-sm">订单总数</p>
+              <h3 class="text-2xl font-bold mt-1" id="total-orders">12,845</h3>
             </div>
-            <div class="relative">
-              <select
-                class="appearance-none bg-white border border-gray-200 rounded-md py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-              >
-                <option>iOS</option>
-                <option>Android</option>
-              </select>
-              <div
-                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400"
-              >
-                <i class="fas fa-chevron-down text-xs"> </i>
-              </div>
-            </div>
-            <button
-              class="bg-white border border-gray-200 rounded-md py-2 px-4 text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors"
-            >
-              <i class="fas fa-calendar-alt text-gray-400"> </i>
-              <span> 最近30天 </span>
-              <i class="fas fa-chevron-down text-xs text-gray-400"> </i>
-            </button>
-            <button
-              class="bg-primary text-white rounded-md py-2 px-4 text-sm flex items-center gap-2 hover:bg-primary/90 transition-colors"
-            >
-              <i class="fas fa-download"> </i>
-              <span> 导出数据 </span>
-            </button>
-          </div>
-        </div>
-        <!-- 应用选择标签 -->
-        <div class="bg-white rounded-lg shadow-card p-4 mb-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-medium text-dark">对比应用</h3>
-            <button
-              class="text-primary text-sm flex items-center gap-1 hover:underline"
-            >
-              <i class="fas fa-plus-circle"> </i>
-              <span> 添加应用 </span>
-            </button>
-          </div>
-          <div class="flex flex-wrap gap-4">
-            <!-- 应用1 -->
             <div
-              class="flex items-center bg-primary/5 border border-primary/20 rounded-lg p-3 w-full sm:w-auto flex-1 sm:flex-none"
+              class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center"
             >
-              <img
-                alt="微信图标"
-                class="w-10 h-10 rounded object-cover mr-3"
-                src="https://design.gemcoder.com/staticResource/echoAiSystemImages/29dbfab0b78b47abe1eb3262cb336ea7.png"
-              />
-              <div class="flex-1 min-w-0">
-                <h4 class="font-medium text-dark truncate">微信</h4>
-                <p class="text-xs text-gray-400 truncate">WeChat - 腾讯科技</p>
-              </div>
-              <div class="ml-3 flex items-center gap-2">
-                <span class="inline-block w-3 h-3 rounded-full bg-primary">
-                </span>
-                <button
-                  class="text-gray-400 hover:text-danger transition-colors"
-                >
-                  <i class="fas fa-times"> </i>
-                </button>
-              </div>
+              <i class="fas fa-shopping-cart text-accent"> </i>
             </div>
-            <!-- 应用2 -->
+          </div>
+          <div class="flex items-center text-sm">
+            <span class="text-success flex items-center">
+              <i class="fas fa-arrow-up mr-1"> </i>
+              12.5%
+            </span>
+            <span class="text-gray-400 ml-2"> 较上月 </span>
+          </div>
+        </div>
+        <!-- 已完成订单 -->
+        <div class="bg-primary/50 rounded-lg p-4 gradient-border card-glow">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-gray-400 text-sm">已完成订单</p>
+              <h3 class="text-2xl font-bold mt-1" id="completed-orders">
+                9,632
+              </h3>
+            </div>
             <div
-              class="flex items-center bg-white border border-gray-200 rounded-lg p-3 w-full sm:w-auto flex-1 sm:flex-none"
+              class="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center"
             >
-              <img
-                alt="支付宝图标"
-                class="w-10 h-10 rounded object-cover mr-3"
-                src="https://design.gemcoder.com/staticResource/echoAiSystemImages/d32def4ad62b0feb7af1e5d9429afc34.png"
-              />
-              <div class="flex-1 min-w-0">
-                <h4 class="font-medium text-dark truncate">支付宝</h4>
-                <p class="text-xs text-gray-400 truncate">Alipay - 蚂蚁集团</p>
-              </div>
-              <div class="ml-3 flex items-center gap-2">
-                <span class="inline-block w-3 h-3 rounded-full bg-warning">
-                </span>
-                <button
-                  class="text-gray-400 hover:text-danger transition-colors"
-                >
-                  <i class="fas fa-times"> </i>
-                </button>
-              </div>
+              <i class="fas fa-check-circle text-success"> </i>
             </div>
-            <!-- 应用3 -->
+          </div>
+          <div class="flex items-center text-sm">
+            <span class="text-success flex items-center">
+              <i class="fas fa-arrow-up mr-1"> </i>
+              8.3%
+            </span>
+            <span class="text-gray-400 ml-2"> 较上月 </span>
+          </div>
+        </div>
+        <!-- 运行中虚拟机 -->
+        <div class="bg-primary/50 rounded-lg p-4 gradient-border card-glow">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-gray-400 text-sm">运行中虚拟机</p>
+              <h3 class="text-2xl font-bold mt-1" id="running-vms">348</h3>
+            </div>
             <div
-              class="flex items-center bg-white border border-gray-200 rounded-lg p-3 w-full sm:w-auto flex-1 sm:flex-none"
+              class="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center"
             >
-              <img
-                alt="淘宝图标"
-                class="w-10 h-10 rounded object-cover mr-3"
-                src="https://design.gemcoder.com/staticResource/echoAiSystemImages/063e6c3fe9aa053dd043da567f21e1e5.png"
-              />
-              <div class="flex-1 min-w-0">
-                <h4 class="font-medium text-dark truncate">淘宝</h4>
-                <p class="text-xs text-gray-400 truncate">Taobao - 阿里巴巴</p>
-              </div>
-              <div class="ml-3 flex items-center gap-2">
-                <span class="inline-block w-3 h-3 rounded-full bg-success">
-                </span>
-                <button
-                  class="text-gray-400 hover:text-danger transition-colors"
-                >
-                  <i class="fas fa-times"> </i>
-                </button>
-              </div>
+              <i class="fas fa-server text-warning"> </i>
             </div>
           </div>
-        </div>
-      </div>
-      <!-- 内容标签页 -->
-      <div class="border-b border-gray-200 mb-6">
-        <div class="flex overflow-x-auto scrollbar-hide space-x-8 pb-2">
-          <button class="tab-active whitespace-nowrap py-3 text-sm">
-            应用信息
-          </button>
-          <button
-            class="text-gray-500 hover:text-primary whitespace-nowrap py-3 text-sm transition-colors"
-            data-yteditvalue="评分"
-          >
-            评分
-          </button>
-          <button
-            class="text-gray-500 hover:text-primary whitespace-nowrap py-3 text-sm transition-colors"
-          >
-            榜单排名
-          </button>
-          <button
-            class="text-gray-500 hover:text-primary whitespace-nowrap py-3 text-sm transition-colors"
-          >
-            下载量/收入
-          </button>
-        </div>
-      </div>
-      <!-- 应用信息标签内容 -->
-      <div id="app-info-content" class="space-y-6">
-        <!-- 基础信息卡片 -->
-        <div class="bg-white rounded-lg shadow-card overflow-hidden">
-          <div class="p-5 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-dark">基础信息</h2>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr class="bg-gray-50 text-left">
-                  <th
-                    class="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5"
-                  >
-                    信息类别
-                  </th>
-                  <th
-                    class="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    <div class="flex items-center">
-                      <span
-                        class="inline-block w-3 h-3 rounded-full bg-primary mr-2"
-                      >
-                      </span>
-                      微信
-                    </div>
-                  </th>
-                  <th
-                    class="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    <div class="flex items-center">
-                      <span
-                        class="inline-block w-3 h-3 rounded-full bg-warning mr-2"
-                      >
-                      </span>
-                      支付宝
-                    </div>
-                  </th>
-                  <th
-                    class="px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    <div class="flex items-center">
-                      <span
-                        class="inline-block w-3 h-3 rounded-full bg-success mr-2"
-                      >
-                      </span>
-                      淘宝
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    应用标题
-                  </td>
-                  <td class="px-5 py-4 text-sm">微信</td>
-                  <td class="px-5 py-4 text-sm">支付宝</td>
-                  <td class="px-5 py-4 text-sm">淘宝</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    公司
-                  </td>
-                  <td class="px-5 py-4 text-sm">腾讯科技(深圳)有限公司</td>
-                  <td class="px-5 py-4 text-sm">蚂蚁科技集团股份有限公司</td>
-                  <td class="px-5 py-4 text-sm">阿里巴巴集团控股有限公司</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    应用价格
-                  </td>
-                  <td class="px-5 py-4 text-sm text-success">免费</td>
-                  <td class="px-5 py-4 text-sm text-success">免费</td>
-                  <td class="px-5 py-4 text-sm text-success">免费</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    发布日期
-                  </td>
-                  <td class="px-5 py-4 text-sm">2011-01-21</td>
-                  <td class="px-5 py-4 text-sm">2013-02-07</td>
-                  <td class="px-5 py-4 text-sm">2013-07-29</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    更新日期
-                  </td>
-                  <td class="px-5 py-4 text-sm">2023-09-15</td>
-                  <td class="px-5 py-4 text-sm">2023-09-10</td>
-                  <td class="px-5 py-4 text-sm">2023-09-12</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    最新版本
-                  </td>
-                  <td class="px-5 py-4 text-sm">8.0.41</td>
-                  <td class="px-5 py-4 text-sm">10.5.20</td>
-                  <td class="px-5 py-4 text-sm">10.17.0</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    应用包大小
-                  </td>
-                  <td class="px-5 py-4 text-sm">557.5 MB</td>
-                  <td class="px-5 py-4 text-sm">489.2 MB</td>
-                  <td class="px-5 py-4 text-sm">328.6 MB</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    年龄评级
-                  </td>
-                  <td class="px-5 py-4 text-sm">4+</td>
-                  <td class="px-5 py-4 text-sm">4+</td>
-                  <td class="px-5 py-4 text-sm">4+</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    大小
-                  </td>
-                  <td class="px-5 py-4 text-sm">557.5 MB</td>
-                  <td class="px-5 py-4 text-sm">489.2 MB</td>
-                  <td class="px-5 py-4 text-sm">328.6 MB</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    支持设备
-                  </td>
-                  <td class="px-5 py-4 text-sm">iPhone & iPad</td>
-                  <td class="px-5 py-4 text-sm">iPhone & iPad</td>
-                  <td class="px-5 py-4 text-sm">iPhone & iPad</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    价格
-                  </td>
-                  <td class="px-5 py-4 text-sm text-success">免费</td>
-                  <td class="px-5 py-4 text-sm text-success">免费</td>
-                  <td class="px-5 py-4 text-sm text-success">免费</td>
-                </tr>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-5 py-4 text-sm font-medium text-gray-500">
-                    语言
-                  </td>
-                  <td class="px-5 py-4 text-sm">简体中文, 繁体中文, 英文</td>
-                  <td class="px-5 py-4 text-sm">简体中文, 英文, 日文, 韩文</td>
-                  <td class="px-5 py-4 text-sm">简体中文, 英文, 日文, 韩文</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="flex items-center text-sm">
+            <span class="text-success flex items-center">
+              <i class="fas fa-arrow-up mr-1"> </i>
+              5.7%
+            </span>
+            <span class="text-gray-400 ml-2"> 较上月 </span>
           </div>
         </div>
-        <!-- 评分模块内容 -->
-        <div id="rating-content" class="hidden space-y-6">
-          <div class="bg-white rounded-lg shadow-card overflow-hidden">
-            <div class="p-5 border-b border-gray-100">
-              <h2 class="text-lg font-semibold text-dark">评分概况</h2>
+        <!-- 资源利用率 -->
+        <div class="bg-primary/50 rounded-lg p-4 gradient-border card-glow">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <p class="text-gray-400 text-sm">资源利用率</p>
+              <h3 class="text-2xl font-bold mt-1" id="resource-usage">68.2%</h3>
             </div>
-            <div class="p-5">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- 微信评分 -->
-                <div class="border border-gray-100 rounded-lg p-5">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                      <img
-                        alt="微信图标"
-                        class="w-10 h-10 rounded object-cover mr-3"
-                        src="https://design.gemcoder.com/staticResource/echoAiSystemImages/29dbfab0b78b47abe1eb3262cb336ea7.png"
-                      />
-                      <h3 class="font-medium text-dark">微信</h3>
-                    </div>
-                    <span class="inline-block w-3 h-3 rounded-full bg-primary">
-                    </span>
-                  </div>
-                  <div class="flex flex-col items-center mb-4">
-                    <div class="text-4xl font-bold text-dark mb-1">4.6</div>
-                    <div class="flex text-warning">
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star-half-alt"> </i>
-                    </div>
-                    <div class="text-sm text-gray-400 mt-2">120,345 条评分</div>
-                  </div>
-                  <!-- 星级分布 -->
-                  <div class="space-y-2">
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 5 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 75%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        75%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 4 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 15%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        15%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 3 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 7%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        7%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 2 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 2%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        2%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 1 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 1%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        1%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <!-- 支付宝评分 -->
-                <div class="border border-gray-100 rounded-lg p-5">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                      <img
-                        alt="支付宝图标"
-                        class="w-10 h-10 rounded object-cover mr-3"
-                        src="https://design.gemcoder.com/staticResource/echoAiSystemImages/d32def4ad62b0feb7af1e5d9429afc34.png"
-                      />
-                      <h3 class="font-medium text-dark">支付宝</h3>
-                    </div>
-                    <span class="inline-block w-3 h-3 rounded-full bg-warning">
-                    </span>
-                  </div>
-                  <div class="flex flex-col items-center mb-4">
-                    <div class="text-4xl font-bold text-dark mb-1">4.4</div>
-                    <div class="flex text-warning">
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star-half-alt"> </i>
-                    </div>
-                    <div class="text-sm text-gray-400 mt-2">98,765 条评分</div>
-                  </div>
-                  <!-- 星级分布 -->
-                  <div class="space-y-2">
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 5 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 68%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        68%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 4 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 20%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        20%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 3 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 8%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        8%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 2 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 3%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        3%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 1 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 1%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        1%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <!-- 淘宝评分 -->
-                <div class="border border-gray-100 rounded-lg p-5">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                      <img
-                        alt="淘宝图标"
-                        class="w-10 h-10 rounded object-cover mr-3"
-                        src="https://design.gemcoder.com/staticResource/echoAiSystemImages/063e6c3fe9aa053dd043da567f21e1e5.png"
-                      />
-                      <h3 class="font-medium text-dark">淘宝</h3>
-                    </div>
-                    <span class="inline-block w-3 h-3 rounded-full bg-success">
-                    </span>
-                  </div>
-                  <div class="flex flex-col items-center mb-4">
-                    <div class="text-4xl font-bold text-dark mb-1">4.5</div>
-                    <div class="flex text-warning">
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star"> </i>
-                      <i class="fas fa-star-half-alt"> </i>
-                    </div>
-                    <div class="text-sm text-gray-400 mt-2">156,789 条评分</div>
-                  </div>
-                  <!-- 星级分布 -->
-                  <div class="space-y-2">
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 5 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 72%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        72%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 4 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 18%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        18%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 3 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 7%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        7%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 2 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-2 rounded-full"
-                          style="width: 2%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        2%
-                      </span>
-                    </div>
-                    <div class="flex items-center">
-                      <span class="text-xs text-gray-500 w-10"> 1 星 </span>
-                      <div class="flex-1 bg-gray-100 rounded-full h-2 mr-2">
-                        <div
-                          class="bg-warning h-.2 rounded-full"
-                          style="width: 1%"
-                        ></div>
-                      </div>
-                      <span class="text-xs text-gray-500 w-10 text-right">
-                        1%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 下载量/收入模块内容 -->
-        <div id="download-income-content" class="hidden">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- 下载量趋势图表 -->
-            <div class="bg-white rounded-lg shadow-card overflow-hidden">
-              <div
-                class="p-5 border-b border-gray-100 flex justify-between items-center"
-              >
-                <h2 class="text-lg font-semibold text-dark">下载量趋势</h2>
-                <div class="flex gap-3">
-                  <div class="relative">
-                    <select
-                      class="download-period-select appearance-none bg-gray-50 border border-gray-200 rounded-md py-1.5 pl-3 pr-8 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    >
-                      <option>近30天</option>
-                      <option>近90天</option>
-                      <option>近一年</option>
-                    </select>
-                    <div
-                      class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400"
-                    >
-                      <i class="fas fa-chevron-down text-xs"> </i>
-                    </div>
-                  </div>
-                  <button
-                    class="text-sm text-gray-400 hover:text-primary transition-colors"
-                  >
-                    <i class="fas fa-ellipsis-v"> </i>
-                  </button>
-                </div>
-              </div>
-              <div class="p-5">
-                <div class="w-full h-[300px]" id="downloadTrendChart"></div>
-              </div>
-            </div>
-            <!-- 收入趋势图表 -->
-            <div class="bg-white rounded-lg shadow-card overflow-hidden">
-              <div
-                class="p-5 border-b border-gray-100 flex justify-between items-center"
-              >
-                <h2 class="text-lg font-semibold text-dark">收入趋势</h2>
-                <div class="flex gap-3">
-                  <div class="relative">
-                    <select
-                      class="income-period-select appearance-none bg-gray-50 border border-gray-200 rounded-md py-1.5 pl-3 pr-8 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    >
-                      <option>近30天</option>
-                      <option>近90天</option>
-                      <option>近一年</option>
-                    </select>
-                    <div
-                      class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400"
-                    >
-                      <i class="fas fa-chevron-down text-xs"> </i>
-                    </div>
-                  </div>
-                  <button
-                    class="text-sm text-gray-400 hover:text-primary transition-colors"
-                  >
-                    <i class="fas fa-ellipsis-v"> </i>
-                  </button>
-                </div>
-              </div>
-              <div class="p-5">
-                <div class="w-full h-[300px]" id="incomeTrendChart"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 榜单排名模块内容 -->
-        <div id="ranking-content" class="hidden">
-          <div class="bg-white rounded-lg shadow-card overflow-hidden">
             <div
-              class="p-5 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4"
+              class="w-10 h-10 rounded-full bg-danger/20 flex items-center justify-center"
             >
-              <h2 class="text-lg font-semibold text-dark">榜单排名趋势</h2>
-              <div class="flex flex-wrap gap-3">
-                <div class="relative">
-                  <select
-                    class="appearance-none bg-gray-50 border border-gray-200 rounded-md py-1.5 pl-3 pr-8 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                  >
-                    <option>总榜</option>
-                    <option>社交</option>
-                    <option>工具</option>
-                    <option>购物</option>
-                  </select>
+              <i class="fas fa-chart-pie text-danger"> </i>
+            </div>
+          </div>
+          <div class="flex items-center text-sm">
+            <span class="text-danger flex items-center">
+              <i class="fas fa-arrow-up mr-1"> </i>
+              3.2%
+            </span>
+            <span class="text-gray-400 ml-2"> 较上月 </span>
+          </div>
+        </div>
+      </section>
+      <!-- 图表和详细数据区域 -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左侧区域 -->
+        <div class="space-y-6">
+          <!-- 操作系统分类 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">操作系统分类</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-sync-alt mr-1"> </i>
+                实时
+              </div>
+            </div>
+            <div class="h-[250px]" id="os-distribution-chart"></div>
+          </div>
+          <!-- 虚拟机运行状态 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">虚拟机运行状态</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-sync-alt mr-1"> </i>
+                实时
+              </div>
+            </div>
+            <div class="h-[250px]" id="vm-status-chart"></div>
+          </div>
+          <!-- 资源使用统计 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">资源使用统计</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-calendar-alt mr-1"> </i>
+                本月
+              </div>
+            </div>
+            <div class="space-y-4">
+              <!-- CPU使用率 -->
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm"> CPU使用率 </span>
+                  <span class="text-sm font-medium"> 68% </span>
+                </div>
+                <div class="w-full bg-dark-light rounded-full h-2">
                   <div
-                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400"
-                  >
-                    <i class="fas fa-chevron-down text-xs"> </i>
-                  </div>
+                    class="bg-accent h-2 rounded-full"
+                    style="width: 68%"
+                  ></div>
                 </div>
-                <div class="flex gap-2">
-                  <button
-                    class="date-filter-btn bg-primary text-white text-xs py-1.5 px-3 rounded-md"
-                  >
-                    今日
-                  </button>
-                  <button
-                    class="date-filter-btn bg-gray-100 text-gray-500 text-xs py-1.5 px-3 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    近7天
-                  </button>
-                  <button
-                    class="date-filter-btn bg-gray-100 text-gray-500 text-xs py-1.5 px-3 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    近30天
-                  </button>
-                  <button
-                    class="date-filter-btn bg-gray-100 text-gray-500 text-xs py-1.5 px-3 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    近一年
-                  </button>
+              </div>
+              <!-- 内存使用率 -->
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm"> 内存使用率 </span>
+                  <span class="text-sm font-medium"> 75% </span>
                 </div>
+                <div class="w-full bg-dark-light rounded-full h-2">
+                  <div
+                    class="bg-success h-2 rounded-full"
+                    style="width: 75%"
+                  ></div>
+                </div>
+              </div>
+              <!-- 磁盘使用率 -->
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm"> 磁盘使用率 </span>
+                  <span class="text-sm font-medium"> 42% </span>
+                </div>
+                <div class="w-full bg-dark-light rounded-full h-2">
+                  <div
+                    class="bg-warning h-2 rounded-full"
+                    style="width: 42%"
+                  ></div>
+                </div>
+              </div>
+              <!-- 网络流量 -->
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm"> 网络流量 </span>
+                  <span class="text-sm font-medium"> 83% </span>
+                </div>
+                <div class="w-full bg-dark-light rounded-full h-2">
+                  <div
+                    class="bg-danger h-2 rounded-full"
+                    style="width: 83%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 中间区域 -->
+        <div class="space-y-6 lg:col-span-1">
+          <!-- 虚拟机创建/回收趋势 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">虚拟机创建/回收趋势</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-calendar-alt mr-1"> </i>
+                近30天
+              </div>
+            </div>
+            <div class="h-[300px]" id="vm-trend-chart"></div>
+          </div>
+          <!-- 服务健康状态 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">服务健康状态</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-sync-alt mr-1"> </i>
+                实时
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div
+                class="flex items-center justify-between p-3 bg-dark/50 rounded-lg"
+              >
+                <div class="flex items-center">
+                  <div class="w-3 h-3 rounded-full bg-success mr-3"></div>
+                  <span> 云服务器 </span>
+                </div>
+                <span class="text-success text-sm"> 正常运行中 </span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 bg-dark/50 rounded-lg"
+              >
+                <div class="flex items-center">
+                  <div class="w-3 h-3 rounded-full bg-success mr-3"></div>
+                  <span> 负载均衡 </span>
+                </div>
+                <span class="text-success text-sm"> 正常运行中 </span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 bg-dark/50 rounded-lg"
+              >
+                <div class="flex items-center">
+                  <div class="w-3 h-3 rounded-full bg-warning mr-3"></div>
+                  <span> 数据库服务 </span>
+                </div>
+                <span class="text-warning text-sm"> 负载较高 </span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 bg-dark/50 rounded-lg"
+              >
+                <div class="flex items-center">
+                  <div class="w-3 h-3 rounded-full bg-success mr-3"></div>
+                  <span> 对象存储 </span>
+                </div>
+                <span class="text-success text-sm"> 正常运行中 </span>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 bg-dark/50 rounded-lg"
+              >
+                <div class="flex items-center">
+                  <div class="w-3 h-3 rounded-full bg-danger mr-3"></div>
+                  <span> 监控服务 </span>
+                </div>
+                <span class="text-danger text-sm"> 部分异常 </span>
+              </div>
+            </div>
+          </div>
+          <!-- 最近告警信息 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">最近告警信息</h2>
+              <button class="text-sm text-accent hover:underline">
+                查看全部
+              </button>
+            </div>
+            <div class="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+              <div class="p-3 bg-dark/50 rounded-lg border-l-2 border-danger">
+                <div class="flex justify-between items-start">
+                  <h4 class="font-medium">CPU使用率过高</h4>
+                  <span class="text-xs text-gray-400"> 10分钟前 </span>
+                </div>
+                <p class="text-sm text-gray-400 mt-1">
+                  服务器 VM-8472 的CPU使用率持续15分钟超过90%
+                </p>
+              </div>
+              <div class="p-3 bg-dark/50 rounded-lg border-l-2 border-warning">
+                <div class="flex justify-between items-start">
+                  <h4 class="font-medium">磁盘空间不足</h4>
+                  <span class="text-xs text-gray-400"> 1小时前 </span>
+                </div>
+                <p class="text-sm text-gray-400 mt-1">
+                  服务器 VM-3256 的磁盘空间剩余不足10%
+                </p>
+              </div>
+              <div class="p-3 bg-dark/50 rounded-lg border-l-2 border-warning">
+                <div class="flex justify-between items-start">
+                  <h4 class="font-medium">内存使用率警告</h4>
+                  <span class="text-xs text-gray-400"> 3小时前 </span>
+                </div>
+                <p class="text-sm text-gray-400 mt-1">
+                  服务器 VM-1983 的内存使用率达到85%
+                </p>
+              </div>
+              <div class="p-3 bg-dark/50 rounded-lg border-l-2 border-accent">
+                <div class="flex justify-between items-start">
+                  <h4 class="font-medium">服务重启成功</h4>
+                  <span class="text-xs text-gray-400"> 5小时前 </span>
+                </div>
+                <p class="text-sm text-gray-400 mt-1">
+                  数据库服务已成功重启完成
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 右侧区域 -->
+        <div class="space-y-6">
+          <!-- 订单分类统计 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">订单分类统计</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-calendar-alt mr-1"> </i>
+                本月
+              </div>
+            </div>
+            <div class="h-[250px]" id="order-category-chart"></div>
+          </div>
+          <!-- 订单创建/回收趋势 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">订单创建/回收趋势</h2>
+              <div class="text-sm text-gray-400">
+                <i class="fas fa-calendar-alt mr-1"> </i>
+                近30天
+              </div>
+            </div>
+            <div class="h-[250px]" id="order-trend-chart"></div>
+          </div>
+          <!-- 虚拟机TOP10排行 -->
+          <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold">虚拟机TOP10排行</h2>
+              <div class="flex space-x-2">
                 <button
-                  class="text-sm text-gray-400 hover:text-primary transition-colors"
+                  class="px-2 py-1 text-xs bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors active"
                 >
-                  <i class="fas fa-ellipsis-v"> </i>
+                  按应用系统
+                </button>
+                <button
+                  class="px-2 py-1 text-xs bg-dark-light text-gray-300 rounded hover:bg-dark-light/80 transition-colors"
+                >
+                  按组织
                 </button>
               </div>
             </div>
-            <div class="p-5">
-              <div class="w-full h-[350px]" id="rankingChart"></div>
+            <div class="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+              <div class="flex items-center justify-between p-2">
+                <div class="flex items-center">
+                  <div
+                    class="w-8 h-8 rounded bg-accent/20 flex items-center justify-center mr-3"
+                  >
+                    <span class="text-accent font-medium"> 1 </span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium">企业资源管理系统</h4>
+                    <p class="text-xs text-gray-400">128台虚拟机</p>
+                  </div>
+                </div>
+                <div
+                  class="w-24 bg-dark-light h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-accent h-full rounded-full"
+                    style="width: 85%"
+                  ></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <div class="flex items-center">
+                  <div
+                    class="w-8 h-8 rounded bg-success/20 flex items-center justify-center mr-3"
+                  >
+                    <span class="text-success font-medium"> 2 </span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium">客户关系管理系统</h4>
+                    <p class="text-xs text-gray-400">96台虚拟机</p>
+                  </div>
+                </div>
+                <div
+                  class="w-24 bg-dark-light h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-success h-full rounded-full"
+                    style="width: 72%"
+                  ></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <div class="flex items-center">
+                  <div
+                    class="w-8 h-8 rounded bg-warning/20 flex items-center justify-center mr-3"
+                  >
+                    <span class="text-warning font-medium"> 3 </span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium">人力资源管理系统</h4>
+                    <p class="text-xs text-gray-400">78台虚拟机</p>
+                  </div>
+                </div>
+                <div
+                  class="w-24 bg-dark-light h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-warning h-full rounded-full"
+                    style="width: 65%"
+                  ></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <div class="flex items-center">
+                  <div
+                    class="w-8 h-8 rounded bg-danger/20 flex items-center justify-center mr-3"
+                  >
+                    <span class="text-danger font-medium"> 4 </span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium">财务管理系统</h4>
+                    <p class="text-xs text-gray-400">65台虚拟机</p>
+                  </div>
+                </div>
+                <div
+                  class="w-24 bg-dark-light h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-danger h-full rounded-full"
+                    style="width: 58%"
+                  ></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between p-2">
+                <div class="flex items-center">
+                  <div
+                    class="w-8 h-8 rounded bg-dark-light flex items-center justify-center mr-3"
+                  >
+                    <span class="text-gray-300 font-medium"> 5 </span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium">供应链管理系统</h4>
+                    <p class="text-xs text-gray-400">42台虚拟机</p>
+                  </div>
+                </div>
+                <div
+                  class="w-24 bg-dark-light h-2 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-gray-400 h-full rounded-full"
+                    style="width: 45%"
+                  ></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </main>
+    <!-- 页脚 -->
+    <footer
+      class="bg-primary/80 backdrop-blur-md border-t border-accent/20 py-4 mt-8"
+    >
+      <div class="container mx-auto px-4 text-center text-sm text-gray-400">
+        <p>© 2023 云管理平台数据大屏 | 系统版本 v2.5.3</p>
+      </div>
+    </footer>
+    <!-- JavaScript -->
     <script>
-      // 页面加载时初始化渲染
+      // 页面加载完成后初始化
               document.addEventListener('DOMContentLoaded', () => {
+                  // 设置当前日期和时间
+                  updateDateTime();
+                  setInterval(updateDateTime, 1000);
+
+                  // 初始化所有图表
                   initCharts();
-                  initTabSwitching();
+
+                  // 监听窗口大小变化，调整图表尺寸
+                  window.addEventListener('resize', debounce(() => {
+                      resizeCharts();
+                  }, 300));
               });
+              // 更新日期和时间
+              function updateDateTime() {
+                  const now = new Date();
 
-              // 初始化图表
+                  // 格式化日期
+                  const dateOptions = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+                  document.getElementById('current-date').textContent = now.toLocaleDateString('zh-CN', dateOptions);
+
+                  // 格式化时间
+                  const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                  document.getElementById('current-time').textContent = now.toLocaleTimeString('zh-CN', timeOptions);
+              }
+              // 防抖函数
+              function debounce(func, wait) {
+                  let timeout;
+                  return function() {
+                      const context = this, args = arguments;
+                      clearTimeout(timeout);
+                      timeout = setTimeout(() => func.apply(context, args), wait);
+                  };
+              }
+              // 初始化所有图表
               function initCharts() {
-                  // 评分趋势图表
-                  const ratingTrendChart = echarts.init(document.getElementById('ratingTrendChart'));
-                  const ratingOption = {
+                  // 操作系统分类图表
+                  const osDistributionChart = echarts.init(document.getElementById('os-distribution-chart'));
+                  const osDistributionOption = {
+                      color: ['#16C2D5', '#00CF95', '#FFC107', '#FF5252', '#7B61FF'],
                       tooltip: {
-                          trigger: 'axis',
-                          axisPointer: {
-                              type: 'cross',
-                              label: {
-                                  backgroundColor: '#6a7985'
-                              }
-                          }
+                          trigger: 'item',
+                          formatter: '{a} <br/>{b}: {c} ({d}%)'
                       },
                       legend: {
-                          data: ['微信', '支付宝', '淘宝'],
-                          top: 0,
+                          orient: 'vertical',
+                          right: 10,
+                          top: 'center',
                           textStyle: {
-                              fontSize: 12
+                              color: '#ccc'
                           }
                       },
-                      grid: {
-                          left: '3%',
-                          right: '4%',
-                          bottom: '3%',
-                          containLabel: true
-                      },
-                      xAxis: [
-                          {
-                              type: 'category',
-                              boundaryGap: false,
-                              data: ['8/15', '8/20', '8/25', '8/30', '9/5', '9/10', '9/15'],
-                              axisLabel: {
-                                  fontSize: 12
-                              }
-                          }
-                      ],
-                      yAxis: [
-                          {
-                              type: 'value',
-                              max: 5,
-                              min: 3,
-                              axisLabel: {
-                                  fontSize: 12,
-                                  formatter: '{value}'
-                              }
-                          }
-                      ],
                       series: [
                           {
-                              name: '微信',
-                              type: 'line',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              lineStyle: {
-                                  width: 2,
-                                  color: '#3E63DD'
-                              },
+                              name: '操作系统',
+                              type: 'pie',
+                              radius: ['40%', '70%'],
+                              avoidLabelOverlap: false,
                               itemStyle: {
-                                  color: '#3E63DD'
+                                  borderRadius: 4,
+                                  borderColor: '#0A1931',
+                                  borderWidth: 2
                               },
-                              data: [4.6, 4.5, 4.5, 4.6, 4.5, 4.6, 4.6]
-                          },
-                          {
-                              name: '支付宝',
-                              type: 'line',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              lineStyle: {
-                                  width: 2,
-                                  color: '#FF7D00'
+                              label: {
+                                  show: false,
+                                  position: 'center'
                               },
-                              itemStyle: {
-                                  color: '#FF7D00'
+                              emphasis: {
+                                  label: {
+                                      show: true,
+                                      fontSize: 14,
+                                      fontWeight: 'bold',
+                                      color: '#fff'
+                                  }
                               },
-                              data: [4.3, 4.4, 4.3, 4.4, 4.3, 4.4, 4.4]
-                          },
-                          {
-                              name: '淘宝',
-                              type: 'line',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              lineStyle: {
-                                  width: 2,
-                                  color: '#00B42A'
+                              labelLine: {
+                                  show: false
                               },
-                              itemStyle: {
-                                  color: '#00B42A'
-                              },
-                              data: [4.5, 4.5, 4.4, 4.5, 4.5, 4.6, 4.5]
+                              data: [
+                                  { value: 420, name: 'Linux' },
+                                  { value: 280, name: 'Windows' },
+                                  { value: 120, name: 'macOS' },
+                                  { value: 80, name: 'Unix' },
+                                  { value: 50, name: '其他' }
+                              ]
                           }
                       ]
                   };
-                  ratingTrendChart.setOption(ratingOption);
+                  osDistributionChart.setOption(osDistributionOption);
 
-                  // 下载量趋势图表
-                  const downloadTrendChart = echarts.init(document.getElementById('downloadTrendChart'));
-                  const downloadOption = {
+                  // 虚拟机运行状态图表
+                  const vmStatusChart = echarts.init(document.getElementById('vm-status-chart'));
+                  const vmStatusOption = {
+                      color: ['#00CF95', '#FFC107', '#FF5252', '#7B61FF'],
+                      tooltip: {
+                          trigger: 'item',
+                          formatter: '{a} <br/>{b}: {c} ({d}%)'
+                      },
+                      series: [
+                          {
+                              name: '运行状态',
+                              type: 'pie',
+                              radius: '70%',
+                              center: ['50%', '50%'],
+                              data: [
+                                  { value: 280, name: '运行中' },
+                                  { value: 45, name: '已停止' },
+                                  { value: 15, name: '异常' },
+                                  { value: 8, name: '维护中' }
+                              ],
+                              emphasis: {
+                                  itemStyle: {
+                                      shadowBlur: 10,
+                                      shadowOffsetX: 0,
+                                      shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                  }
+                              }
+                          }
+                      ]
+                  };
+                  vmStatusChart.setOption(vmStatusOption);
+
+                  // 虚拟机创建/回收趋势图表
+                  const vmTrendChart = echarts.init(document.getElementById('vm-trend-chart'));
+                  const vmTrendOption = {
+                      color: ['#16C2D5', '#FF5252'],
                       tooltip: {
                           trigger: 'axis',
                           axisPointer: {
                               type: 'shadow'
-                          },
-                          formatter: '{b}: {c}万'
-                      },
-                      legend: {
-                          data: ['微信', '支付宝', '淘宝'],
-                          top: 0,
-                          textStyle: {
-                              fontSize: 12
-                          }
-                      },
-                      grid: {
-                          left: '3%',
-                          right: '4%',
-                          bottom: '3%',
-                          containLabel: true
-                      },
-                      xAxis: [
-                          {
-                              type: 'category',
-                              data: ['8/15', '8/20', '8/25', '8/30', '9/5', '9/10', '9/15'],
-                              axisLabel: {
-                                  fontSize: 12
-                              }
-                          }
-                      ],
-                      yAxis: [
-                          {
-                              type: 'value',
-                              axisLabel: {
-                                  fontSize: 12,
-                                  formatter: '{value}万'
-                              }
-                          }
-                      ],
-                      series: [
-                          {
-                              name: '微信',
-                              type: 'bar',
-                              stack: '总量',
-                              emphasis: {
-                                  focus: 'series'
-                              },
-                              itemStyle: {
-                                  color: '#3E63DD'
-                              },
-                              data: [120, 132, 101, 134, 90, 230, 210]
-                          },
-                          {
-                              name: '支付宝',
-                              type: 'bar',
-                              stack: '总量',
-                              emphasis: {
-                                  focus: 'series'
-                              },
-                              itemStyle: {
-                                  color: '#FF7D00'
-                              },
-                              data: [220, 182, 191, 234, 290, 330, 310]
-                          },
-                          {
-                              name: '淘宝',
-                              type: 'bar',
-                              stack: '总量',
-                              emphasis: {
-                                  focus: 'series'
-                              },
-                              itemStyle: {
-                                  color: '#00B42A'
-                              },
-                              data: [150, 232, 201, 154, 190, 330, 410]
-                          }
-                      ]
-                  };
-      downloadTrendChart.setOption(downloadOption);
-
-                  // 收入趋势图表
-                  const incomeTrendChart = echarts.init(document.getElementById('incomeTrendChart'));
-                  const incomeOption = {
-                      tooltip: {
-                          trigger: 'axis',
-                          axisPointer: {
-                              type: 'cross',
-                              label: {
-                                  backgroundColor: '#6a7985'
-                              }
-                          },
-                          formatter: '{b}: {c}万元'
-                      },
-                      legend: {
-                          data: ['微信', '支付宝', '淘宝'],
-                          top: 0,
-                          textStyle: {
-                              fontSize: 12
-                          }
-                      },
-                      grid: {
-                          left: '3%',
-                          right: '4%',
-                          bottom: '3%',
-                          containLabel: true
-                      },
-                      xAxis: [
-                          {
-                              type: 'category',
-                              boundaryGap: false,
-                              data: ['8/15', '8/20', '8/25', '8/30', '9/5', '9/10', '9/15'],
-                              axisLabel: {
-                                  fontSize: 12
-                              }
-                          }
-                      ],
-                      yAxis: [
-                          {
-                              type: 'value',
-                              axisLabel: {
-                                  fontSize: 12,
-                                  formatter: '{value}万元'
-                              }
-                          }
-                      ],
-                      series: [
-                          {
-                              name: '微信',
-                              type: 'line',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              lineStyle: {
-                                  width: 2,
-                                  color: '#3E63DD'
-                              },
-                              itemStyle: {
-                                  color: '#3E63DD'
-                              },
-                              data: [120, 132, 101, 134, 90, 230, 210]
-                          },
-                          {
-                              name: '支付宝',
-                              type: 'line',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              lineStyle: {
-                                  width: 2,
-                                  color: '#FF7D00'
-                              },
-                              itemStyle: {
-                                  color: '#FF7D00'
-                              },
-                              data: [220, 182, 191, 234, 290, 330, 310]
-                          },
-                          {
-                              name: '淘宝',
-                              type: 'line',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              lineStyle: {
-                                  width: 2,
-                                  color: '#00B42A'
-                              },
-                              itemStyle: {
-                                  color: '#00B42A'
-                              },
-                              data: [150, 232, 201, 154, 190, 330, 410]
-                          }
-                      ]
-                  };
-                  incomeTrendChart.setOption(incomeOption);
-
-                  // 榜单排名图表
-                  const rankingChart = echarts.init(document.getElementById('rankingChart'));
-                  const rankingOption = {
-                      tooltip: {
-                          trigger: 'axis',
-                          axisPointer: {
-                              type: 'shadow'
-                          }
-                      },
-                      legend: {
-                          data: ['微信', '支付宝', '淘宝'],
-                          top: 0,
-                          textStyle: {
-                              fontSize: 12
                           }
                       },
                       grid: {
@@ -1090,130 +721,224 @@
                           containLabel: true
                       },
                       xAxis: {
-                          type: 'value',
-                          axisLabel: {
-                              fontSize: 12
+                          type: 'category',
+                          data: ['1日', '5日', '10日', '15日', '20日', '25日', '30日'],
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#334155'
+                              }
                           },
-                          max: 50,
-                          inverse: true  // 排名图表，值越小越靠前，所以反转坐标轴
+                          axisLabel: {
+                              color: '#94a3b8'
+                          }
                       },
                       yAxis: {
-                          type: 'category',
-                          data: ['8/15', '8/20', '8/25', '8/30', '9/5', '9/10', '9/15'],
+                          type: 'value',
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#334155'
+                              }
+                          },
                           axisLabel: {
-                              fontSize: 12
+                              color: '#94a3b8'
+                          },
+                          splitLine: {
+                              lineStyle: {
+                                  color: 'rgba(255, 255, 255, 0.05)'
+                              }
                           }
                       },
                       series: [
                           {
-                              name: '微信',
-                              type: 'bar',
+                              name: '创建',
+                              type: 'line',
+                              smooth: true,
+                              data: [120, 190, 150, 230, 180, 250, 210],
+                              lineStyle: {
+                                  width: 3
+                              },
                               symbol: 'circle',
                               symbolSize: 6,
                               itemStyle: {
-                                  color: '#3E63DD'
-                              },
-                              data: [3, 4, 3, 2, 3, 2, 2]
+                                  borderWidth: 2,
+                                  borderColor: '#0A1931'
+                              }
                           },
                           {
-                              name: '支付宝',
-                              type: 'bar',
+                              name: '回收',
+                              type: 'line',
+                              smooth: true,
+                              data: [80, 120, 100, 150, 130, 180, 160],
+                              lineStyle: {
+                                  width: 3
+                              },
                               symbol: 'circle',
                               symbolSize: 6,
                               itemStyle: {
-                                  color: '#FF7D00'
-                              },
-                              data: [5, 6, 5, 4, 5, 4, 5]
-                          },
-                          {
-                              name: '淘宝',
-                              type: 'bar',
-                              symbol: 'circle',
-                              symbolSize: 6,
-                              itemStyle: {
-                                  color: '#00B42A'
-                              },
-                              data: [8, 7, 9, 8, 7, 6, 7]
+                                  borderWidth: 2,
+                                  borderColor: '#0A1931'
+                              }
                           }
                       ]
                   };
-                  rankingChart.setOption(rankingOption);
+                  vmTrendChart.setOption(vmTrendOption);
 
-                  // 响应窗口大小变化，重绘图表
-      // 添加日期筛选按钮事件
-                  document.querySelectorAll('.date-filter-btn').forEach(btn => {
-                      btn.addEventListener('click', function() {
-                          document.querySelectorAll('.date-filter-btn').forEach(b => {
-                              b.classList.remove('bg-primary', 'text-white');
-                              b.classList.add('bg-gray-100', 'text-gray-500');
-                          });
-                          this.classList.remove('bg-gray-100', 'text-gray-500');
-                          this.classList.add('bg-primary', 'text-white');
-                          // 这里可以添加更新图表数据的逻辑
-                      });
-                  });
-
-                  // 下载量周期选择事件
-                  document.querySelectorAll('.download-period-select').forEach(select => {
-                      select.addEventListener('change', function() {
-                          // 这里可以添加更新下载量图表数据的逻辑
-                      });
-                  });
-
-                  // 收入周期选择事件
-                  document.querySelectorAll('.income-period-select').forEach(select => {
-                      select.addEventListener('change', function() {
-                          // 这里可以添加更新收入图表数据的逻辑
-                      });
-                  });
-
-                  // 响应窗口大小变化，重绘图表
-                  window.addEventListener('resize', () => {
-                      if (typeof ratingTrendChart !== 'undefined') ratingTrendChart.resize();
-                      if (typeof downloadTrendChart !== 'undefined') downloadTrendChart.resize();
-                      if (typeof incomeTrendChart !== 'undefined') incomeTrendChart.resize();
-                      if (typeof rankingChart !== 'undefined') rankingChart.resize();
-                  });
-              }
-
-      // 初始化标签切换功能
-              function initTabSwitching() {
-                  const tabs = document.querySelectorAll('.border-b > button');
-                  const contentAreas = {
-                      '应用信息': document.querySelector('#app-info-content'),
-                      '评分': document.querySelector('#rating-content'),
-                      '榜单排名': document.querySelector('#ranking-content'),
-                      '下载量/收入': document.querySelector('#download-income-content')
-                  };
-
-                  // 隐藏所有内容区域，只显示应用信息
-                  Object.values(contentAreas).forEach(area => {
-                      if (area) area.classList.add('hidden');
-                  });
-                  if (contentAreas['应用信息']) contentAreas['应用信息'].classList.remove('hidden');
-
-                  tabs.forEach(tab => {
-                      tab.addEventListener('click', () => {
-                          // 移除所有标签的active状态
-                          tabs.forEach(t => t.classList.remove('tab-active', 'text-primary', 'border-primary'));
-                          tabs.forEach(t => t.classList.add('text-gray-500', 'border-transparent'));
-
-                          // 为当前点击的标签添加active状态
-                          tab.classList.add('tab-active', 'text-primary', 'border-primary');
-                          tab.classList.remove('text-gray-500', 'border-transparent');
-
-                          // 隐藏所有内容区域
-                          Object.values(contentAreas).forEach(area => {
-                              if (area) area.classList.add('hidden');
-                          });
-
-                          // 显示对应的内容区域
-                          const tabText = tab.textContent.trim();
-                          if (contentAreas[tabText]) {
-                              contentAreas[tabText].classList.remove('hidden');
+                  // 订单分类统计图表
+                  const orderCategoryChart = echarts.init(document.getElementById('order-category-chart'));
+                  const orderCategoryOption = {
+                      color: ['#16C2D5', '#00CF95', '#FFC107', '#FF5252', '#7B61FF'],
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
                           }
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['云服务器', '数据库', '存储', '网络', '安全'],
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#334155'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#94a3b8',
+                              rotate: 30,
+                              interval: 0
+                          }
+                      },
+                      yAxis: {
+                          type: 'value',
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#334155'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#94a3b8'
+                          },
+                          splitLine: {
+                              lineStyle: {
+                                  color: 'rgba(255, 255, 255, 0.05)'
+                              }
+                          }
+                      },
+                      series: [
+                          {
+                              name: '订单数量',
+                              type: 'bar',
+                              barWidth: '60%',
+                              data: [3200, 1800, 1500, 1200, 900],
+                              itemStyle: {
+                                  borderRadius: [4, 4, 0, 0]
+                              }
+                          }
+                      ]
+                  };
+                  orderCategoryChart.setOption(orderCategoryOption);
+
+                  // 订单创建/回收趋势图表
+                  const orderTrendChart = echarts.init(document.getElementById('order-trend-chart'));
+                  const orderTrendOption = {
+                      color: ['#00CF95', '#FF5252'],
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
+                          }
+                      },
+                      legend: {
+                          data: ['创建', '取消'],
+                          textStyle: {
+                              color: '#ccc'
+                          },
+                          top: 0
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['1日', '5日', '10日', '15日', '20日', '25日', '30日'],
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#334155'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#94a3b8'
+                          }
+                      },
+                      yAxis: {
+                          type: 'value',
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#334155'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#94a3b8'
+                          },
+                          splitLine: {
+                              lineStyle: {
+                                  color: 'rgba(255, 255, 255, 0.05)'
+                              }
+                          }
+                      },
+                      series: [
+                          {
+                              name: '创建',
+                              type: 'bar',
+                              stack: 'total',
+                              emphasis: {
+                                  focus: 'series'
+                              },
+                              data: [1200, 1900, 1500, 2300, 1800, 2500, 2100],
+                              itemStyle: {
+                                  borderRadius: [4, 4, 0, 0]
+                              }
+                          },
+                          {
+                              name: '取消',
+                              type: 'bar',
+                              stack: 'total',
+                              emphasis: {
+                                  focus: 'series'
+                              },
+                              data: [300, 500, 400, 600, 500, 700, 600],
+                              itemStyle: {
+                                  borderRadius: [4, 4, 0, 0]
+                              }
+                          }
+                      ]
+                  };
+                  orderTrendChart.setOption(orderTrendOption);
+
+                  // 保存图表实例以便调整大小
+                  window.dashboardCharts = [
+                      osDistributionChart,
+                      vmStatusChart,
+                      vmTrendChart,
+                      orderCategoryChart,
+                      orderTrendChart
+                  ];
+              }
+              // 调整所有图表大小
+              function resizeCharts() {
+                  if (window.dashboardCharts && window.dashboardCharts.length) {
+                      window.dashboardCharts.forEach(chart => {
+                          chart.resize();
                       });
-                  });
+                  }
               }
     </script>
   </body>
