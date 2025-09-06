@@ -169,7 +169,8 @@
                 </div>
                 <div class="w-full bg-dark-light rounded-full h-2">
                   <div
-                    :class="`h-2 rounded-full bg-${resource.color}`"
+                    :class="resource.colorClass"
+                    class="h-2 rounded-full"
                     :style="{ width: resource.value + '%' }"
                   ></div>
                 </div>
@@ -208,10 +209,10 @@
                 class="flex items-center justify-between p-3 bg-dark/50 rounded-lg"
               >
                 <div class="flex items-center">
-                  <div :class="`w-3 h-3 rounded-full bg-${service.status} mr-3`"></div>
+                  <div :class="service.statusDotClass" class="w-3 h-3 rounded-full mr-3"></div>
                   <span>{{ service.name }}</span>
                 </div>
-                <span :class="`text-${service.status} text-sm`">{{ service.statusText }}</span>
+                <span :class="service.statusTextClass" class="text-sm">{{ service.statusText }}</span>
               </div>
             </div>
           </div>
@@ -226,7 +227,8 @@
               <div
                 v-for="alert in alerts"
                 :key="alert.id"
-                :class="`p-3 bg-dark/50 rounded-lg border-l-2 border-${alert.level}`"
+                :class="alert.borderClass"
+                class="p-3 bg-dark/50 rounded-lg border-l-2"
               >
                 <div class="flex justify-between items-start">
                   <h4 class="font-medium">{{ alert.title }}</h4>
@@ -267,7 +269,7 @@
           <!-- 虚拟机TOP10排行 -->
           <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-semibold">虚拟机TOP10排行</h2>
+              <h2 class="text-lg font-semibold">APP TOP10排行</h2>
               <div class="flex space-x-2">
                 <button
                   :class="[
@@ -276,7 +278,7 @@
                   ]"
                   @click="activeTab = 'system'"
                 >
-                  按应用系统
+                  免费榜
                 </button>
                 <button
                   :class="[
@@ -285,7 +287,7 @@
                   ]"
                   @click="activeTab = 'organization'"
                 >
-                  按组织
+                  付费榜
                 </button>
               </div>
             </div>
@@ -297,9 +299,10 @@
               >
                 <div class="flex items-center">
                   <div
-                    :class="`w-8 h-8 rounded ${getRankColor(index)} flex items-center justify-center mr-3`"
+                    :class="item.rankBgClass"
+                    class="w-8 h-8 rounded flex items-center justify-center mr-3"
                   >
-                    <span :class="`${getRankTextColor(index)} font-medium`">{{ index + 1 }}</span>
+                    <span :class="item.rankTextClass" class="font-medium">{{ index + 1 }}</span>
                   </div>
                   <div>
                     <h4 class="text-sm font-medium">{{ item.name }}</h4>
@@ -308,7 +311,8 @@
                 </div>
                 <div class="w-24 bg-dark-light h-2 rounded-full overflow-hidden">
                   <div
-                    :class="`h-full rounded-full ${getRankBarColor(index)}`"
+                    :class="item.barColorClass"
+                    class="h-full rounded-full"
                     :style="{ width: item.percentage + '%' }"
                   ></div>
                 </div>
@@ -347,19 +351,19 @@ const stats = ref({
 
 // 资源使用统计
 const resourceStats = ref([
-  { name: 'CPU使用率', value: 68, color: 'accent' },
-  { name: '内存使用率', value: 75, color: 'success' },
-  { name: '磁盘使用率', value: 42, color: 'warning' },
-  { name: '网络流量', value: 83, color: 'danger' }
+  { name: 'CPU使用率', value: 68, colorClass: 'bg-accent' },
+  { name: '内存使用率', value: 75, colorClass: 'bg-success' },
+  { name: '磁盘使用率', value: 42, colorClass: 'bg-warning' },
+  { name: '网络流量', value: 83, colorClass: 'bg-danger' }
 ])
 
 // 服务状态
 const serviceStatus = ref([
-  { name: '云服务器', status: 'success', statusText: '正常运行中' },
-  { name: '负载均衡', status: 'success', statusText: '正常运行中' },
-  { name: '数据库服务', status: 'warning', statusText: '负载较高' },
-  { name: '对象存储', status: 'success', statusText: '正常运行中' },
-  { name: '监控服务', status: 'danger', statusText: '部分异常' }
+  { name: '云服务器', statusDotClass: 'bg-success', statusTextClass: 'text-success', statusText: '正常运行中' },
+  { name: '负载均衡', statusDotClass: 'bg-success', statusTextClass: 'text-success', statusText: '正常运行中' },
+  { name: '数据库服务', statusDotClass: 'bg-warning', statusTextClass: 'text-warning', statusText: '负载较高' },
+  { name: '对象存储', statusDotClass: 'bg-success', statusTextClass: 'text-success', statusText: '正常运行中' },
+  { name: '监控服务', statusDotClass: 'bg-danger', statusTextClass: 'text-danger', statusText: '部分异常' }
 ])
 
 // 告警信息
@@ -369,38 +373,73 @@ const alerts = ref([
     title: 'CPU使用率过高',
     description: '服务器 VM-8472 的CPU使用率持续15分钟超过90%',
     time: '10分钟前',
-    level: 'danger'
+    borderClass: 'border-danger'
   },
   {
     id: 2,
     title: '磁盘空间不足',
     description: '服务器 VM-3256 的磁盘空间剩余不足10%',
     time: '1小时前',
-    level: 'warning'
+    borderClass: 'border-warning'
   },
   {
     id: 3,
     title: '内存使用率警告',
     description: '服务器 VM-1983 的内存使用率达到85%',
     time: '3小时前',
-    level: 'warning'
+    borderClass: 'border-warning'
   },
   {
     id: 4,
     title: '服务重启成功',
     description: '数据库服务已成功重启完成',
     time: '5小时前',
-    level: 'accent'
+    borderClass: 'border-accent'
   }
 ])
 
 // TOP虚拟机数据
 const topVms = ref([
-  { name: '企业资源管理系统', count: 128, percentage: 85 },
-  { name: '客户关系管理系统', count: 96, percentage: 72 },
-  { name: '人力资源管理系统', count: 78, percentage: 65 },
-  { name: '财务管理系统', count: 65, percentage: 58 },
-  { name: '供应链管理系统', count: 42, percentage: 45 }
+  {
+    name: '企业资源管理系统',
+    count: 128,
+    percentage: 85,
+    rankBgClass: 'bg-accent/20',
+    rankTextClass: 'text-accent',
+    barColorClass: 'bg-accent'
+  },
+  {
+    name: '客户关系管理系统',
+    count: 96,
+    percentage: 72,
+    rankBgClass: 'bg-success/20',
+    rankTextClass: 'text-success',
+    barColorClass: 'bg-success'
+  },
+  {
+    name: '人力资源管理系统',
+    count: 78,
+    percentage: 65,
+    rankBgClass: 'bg-warning/20',
+    rankTextClass: 'text-warning',
+    barColorClass: 'bg-warning'
+  },
+  {
+    name: '财务管理系统',
+    count: 65,
+    percentage: 58,
+    rankBgClass: 'bg-danger/20',
+    rankTextClass: 'text-danger',
+    barColorClass: 'bg-danger'
+  },
+  {
+    name: '供应链管理系统',
+    count: 42,
+    percentage: 45,
+    rankBgClass: 'bg-dark-light',
+    rankTextClass: 'text-gray-300',
+    barColorClass: 'bg-gray-400'
+  }
 ])
 
 // 图表引用
@@ -413,22 +452,6 @@ const orderTrendChart = ref(null)
 // 图表实例
 let charts = []
 let timeInterval = null
-
-// 获取排名颜色
-const getRankColor = (index) => {
-  const colors = ['bg-accent/20', 'bg-success/20', 'bg-warning/20', 'bg-danger/20', 'bg-dark-light']
-  return colors[index] || 'bg-dark-light'
-}
-
-const getRankTextColor = (index) => {
-  const colors = ['text-accent', 'text-success', 'text-warning', 'text-danger', 'text-gray-300']
-  return colors[index] || 'text-gray-300'
-}
-
-const getRankBarColor = (index) => {
-  const colors = ['bg-accent', 'bg-success', 'bg-warning', 'bg-danger', 'bg-gray-400']
-  return colors[index] || 'bg-gray-400'
-}
 
 // 更新日期时间
 const updateDateTime = () => {
@@ -798,9 +821,45 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style>
+/* 导入外部CSS */
+@import url('https://cdn.tailwindcss.com');
 @import url('https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
+/* Tailwind CSS 配置 - 这些是原文件中的颜色定义 */
+.bg-primary { background-color: #0F2E58; }
+.bg-primary\/50 { background-color: rgba(15, 46, 88, 0.5); }
+.bg-primary\/80 { background-color: rgba(15, 46, 88, 0.8); }
+.bg-secondary { background-color: #0A1931; }
+.bg-accent { background-color: #16C2D5; }
+.bg-accent\/20 { background-color: rgba(22, 194, 213, 0.2); }
+.bg-accent\/30 { background-color: rgba(22, 194, 213, 0.3); }
+.bg-success { background-color: #00CF95; }
+.bg-success\/20 { background-color: rgba(0, 207, 149, 0.2); }
+.bg-warning { background-color: #FFC107; }
+.bg-warning\/20 { background-color: rgba(255, 193, 7, 0.2); }
+.bg-danger { background-color: #FF5252; }
+.bg-danger\/20 { background-color: rgba(255, 82, 82, 0.2); }
+.bg-dark { background-color: #051024; }
+.bg-dark\/50 { background-color: rgba(5, 16, 36, 0.5); }
+.bg-dark-light { background-color: #1E293B; }
+.bg-dark-light\/80 { background-color: rgba(30, 41, 59, 0.8); }
+
+.text-accent { color: #16C2D5; }
+.text-success { color: #00CF95; }
+.text-warning { color: #FFC107; }
+.text-danger { color: #FF5252; }
+
+.border-accent\/20 { border-color: rgba(22, 194, 213, 0.2); }
+.border-accent\/50 { border-color: rgba(22, 194, 213, 0.5); }
+.border-accent { border-color: #16C2D5; }
+.border-danger { border-color: #FF5252; }
+.border-warning { border-color: #FFC107; }
+
+.from-accent { --tw-gradient-from: #16C2D5; }
+.to-success { --tw-gradient-to: #00CF95; }
+
+/* 原文件中的自定义样式 */
 .content-auto {
   content-visibility: auto;
 }
@@ -839,46 +898,125 @@ onUnmounted(() => {
   z-index: -1;
 }
 
-/* Tailwind CSS 配置 */
-:root {
-  --color-primary: #0F2E58;
-  --color-secondary: #0A1931;
-  --color-accent: #16C2D5;
-  --color-success: #00CF95;
-  --color-warning: #FFC107;
-  --color-danger: #FF5252;
-  --color-dark: #051024;
-  --color-dark-light: #1E293B;
+/* 基础样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.bg-primary { background-color: var(--color-primary); }
-.bg-primary\/50 { background-color: rgba(15, 46, 88, 0.5); }
-.bg-primary\/80 { background-color: rgba(15, 46, 88, 0.8); }
-.bg-secondary { background-color: var(--color-secondary); }
-.bg-accent { background-color: var(--color-accent); }
-.bg-accent\/20 { background-color: rgba(22, 194, 213, 0.2); }
-.bg-accent\/30 { background-color: rgba(22, 194, 213, 0.3); }
-.bg-success { background-color: var(--color-success); }
-.bg-success\/20 { background-color: rgba(0, 207, 149, 0.2); }
-.bg-warning { background-color: var(--color-warning); }
-.bg-warning\/20 { background-color: rgba(255, 193, 7, 0.2); }
-.bg-danger { background-color: var(--color-danger); }
-.bg-danger\/20 { background-color: rgba(255, 82, 82, 0.2); }
-.bg-dark { background-color: var(--color-dark); }
-.bg-dark\/50 { background-color: rgba(5, 16, 36, 0.5); }
-.bg-dark-light { background-color: var(--color-dark-light); }
-.bg-dark-light\/80 { background-color: rgba(30, 41, 59, 0.8); }
+body {
+  font-family: 'Inter', sans-serif;
+}
 
-.text-accent { color: var(--color-accent); }
-.text-success { color: var(--color-success); }
-.text-warning { color: var(--color-warning); }
-.text-danger { color: var(--color-danger); }
+/* Tailwind 基础类 */
+.min-h-screen { min-height: 100vh; }
+.container { max-width: 1200px; margin: 0 auto; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.p-5 { padding: 1.25rem; }
+.m-0 { margin: 0; }
+.mr-1 { margin-right: 0.25rem; }
+.mr-3 { margin-right: 0.75rem; }
+.ml-2 { margin-left: 0.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-8 { margin-top: 2rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.w-3 { width: 0.75rem; }
+.w-8 { width: 2rem; }
+.w-9 { width: 2.25rem; }
+.w-10 { width: 2.5rem; }
+.w-24 { width: 6rem; }
+.w-full { width: 100%; }
+.h-2 { height: 0.5rem; }
+.h-3 { height: 0.75rem; }
+.h-8 { height: 2rem; }
+.h-9 { height: 2.25rem; }
+.h-10 { height: 2.5rem; }
+.max-h-\[200px\] { max-height: 200px; }
+.h-\[250px\] { height: 250px; }
+.h-\[300px\] { height: 300px; }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-lg { font-size: 1.125rem; }
+.text-xl { font-size: 1.25rem; }
+.text-2xl { font-size: 1.5rem; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-white { color: #ffffff; }
+.text-gray-200 { color: #e5e7eb; }
+.text-gray-300 { color: #d1d5db; }
+.text-gray-400 { color: #9ca3af; }
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.border-2 { border-width: 2px; }
+.border-b { border-bottom-width: 1px; }
+.border-l-2 { border-left-width: 2px; }
+.border-t { border-top-width: 1px; }
+.flex { display: flex; }
+.grid { display: grid; }
+.hidden { display: none; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.space-x-2 > * + * { margin-left: 0.5rem; }
+.space-x-3 > * + * { margin-left: 0.75rem; }
+.space-x-4 > * + * { margin-left: 1rem; }
+.space-x-6 > * + * { margin-left: 1.5rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.sticky { position: sticky; }
+.top-0 { top: 0; }
+.z-50 { z-index: 50; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.object-cover { object-fit: cover; }
+.backdrop-blur-md { backdrop-filter: blur(12px); }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.hover\:bg-accent\/20:hover { background-color: rgba(22, 194, 213, 0.2); }
+.hover\:bg-accent\/30:hover { background-color: rgba(22, 194, 213, 0.3); }
+.hover\:bg-dark-light\/80:hover { background-color: rgba(30, 41, 59, 0.8); }
+.hover\:underline:hover { text-decoration-line: underline; }
+.text-center { text-align: center; }
+.pr-1 { padding-right: 0.25rem; }
 
-.border-accent\/20 { border-color: rgba(22, 194, 213, 0.2); }
-.border-accent\/50 { border-color: rgba(22, 194, 213, 0.5); }
-.border-danger { border-color: var(--color-danger); }
-.border-warning { border-color: var(--color-warning); }
+/* 响应式类 */
+@media (min-width: 768px) {
+  .md\:flex { display: flex; }
+  .md\:inline { display: inline; }
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
-.from-accent { --tw-gradient-from: var(--color-accent); }
-.to-success { --tw-gradient-to: var(--color-success); }
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lg\:col-span-1 { grid-column: span 1 / span 1; }
+}
+
+/* 渐变类 */
+.bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+.bg-gradient-to-br.from-accent.to-success {
+  background-image: linear-gradient(to bottom right, #16C2D5, #00CF95);
+}
+
+/* 动态类 */
+.text-\[clamp\(1\.2rem\,3vw\,1\.5rem\)\] {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+}
 </style>
