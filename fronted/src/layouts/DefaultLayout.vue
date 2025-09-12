@@ -66,7 +66,7 @@
               </div>
               <ul class="mt-1 ml-6 space-y-1">
                 <li>
-                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">总览</RouterLink>
+                  <RouterLink to="/analytics" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">数据分析</RouterLink>
                 </li>
                 <li>
                   <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">分类维度</RouterLink>
@@ -100,7 +100,7 @@
               </div>
               <ul class="mt-1 ml-6 space-y-1">
                 <li>
-                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">任务中心</RouterLink>
+                  <RouterLink to="/analytiscs" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">数据分析</RouterLink>
                 </li>
                 <li>
                   <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">数据质量</RouterLink>
@@ -168,4 +168,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 .router-link-exact-active {
   @apply bg-primary/10 text-primary;
 }
+/* Windowed fullscreen (triggered by BigScreen.vue adding class on <html>) */
+html.edge-full-active .h-screen > header { display: none !important; }
+html.edge-full-active .h-screen > .flex > aside { display: none !important; }
+html.edge-full-active .h-screen > .flex > main { width: 100% !important; }
 </style>

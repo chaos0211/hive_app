@@ -1,0 +1,1267 @@
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>手机应用榜单数据分析平台</title>
+    <script src="https://res.gemcoder.com/js/reload.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script>
+      tailwind.config = {
+                  theme: {
+                      extend: {
+                          colors: {
+                              primary: '#165DFF',
+                              secondary: '#36CBCB',
+                              success: '#00B42A',
+                              warning: '#FF7D00',
+                              danger: '#F53F3F',
+                              info: '#86909C',
+                              light: '#F2F3F5',
+                              dark: '#1D2129',
+                              cardGradientStart: '#F7FAFC',
+                              cardGradientEnd: '#EDF2F7',
+                          },
+                          fontFamily: {
+                              inter: ['Inter', 'system-ui', 'sans-serif'],
+                          },
+                          spacing: {
+                              '128': '32rem',
+                          }
+                      },
+                  }
+              }
+    </script>
+    <style type="text/tailwindcss">
+      @layer utilities {
+          .content-auto {
+              content-visibility: auto;
+          }
+          .card-gradient {
+              background: linear-gradient(135deg, var(--tw-gradient-stops));
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+          }
+          .scrollbar-hide {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+          }
+          .filter-active {
+              @apply bg-primary text-white border-primary;
+          }
+          .chart-container {
+              @apply w-full h-[300px] md:h-[350px] lg:h-[400px] relative;
+          }
+      }
+    </style>
+  </head>
+  <body class="font-inter bg-gray-50 text-dark">
+    <!-- 顶部导航栏 -->
+    <header class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+      <div
+        class="container mx-auto px-4 py-3 flex items-center justify-between"
+      >
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-chart-line text-primary text-2xl"> </i>
+          <h1 class="text-xl font-bold text-dark">AppRank Analytics</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button class="text-gray-500 hover:text-primary transition-colors">
+            <i class="fas fa-bell-o"> </i>
+          </button>
+          <button class="text-gray-500 hover:text-primary transition-colors">
+            <i class="fas fa-cog"> </i>
+          </button>
+          <div
+            class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"
+          >
+            <span class="text-sm font-medium"> A </span>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 pt-24 pb-16">
+      <!-- 1️⃣ 顶部筛选区 -->
+      <section
+        class="mb-8 sticky top-16 bg-white rounded-xl shadow-sm p-4 z-40"
+      >
+        <div class="flex flex-wrap gap-4">
+          <!-- 时间范围选择器 -->
+          <div class="relative flex-1 min-w-[180px]">
+            <select
+              id="timeRange"
+              class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            >
+              <option value="30">最近 30 天</option>
+              <option value="90">最近 90 天</option>
+              <option value="180">最近 180 天</option>
+              <option value="365">最近 1 年</option>
+            </select>
+            <div
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
+            >
+              <i class="fas fa-chevron-down text-xs"> </i>
+            </div>
+          </div>
+          <!-- 榜单类型选择器 -->
+          <div class="relative flex-1 min-w-[180px]">
+            <select
+              id="chartType"
+              class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            >
+              <option value="free">免费</option>
+              <option value="paid">付费</option>
+              <option value="grossing">畅销</option>
+            </select>
+            <div
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
+            >
+              <i class="fas fa-chevron-down text-xs"> </i>
+            </div>
+          </div>
+          <!-- 地区选择器 -->
+          <div class="relative flex-1 min-w-[180px]">
+            <select
+              id="region"
+              class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            >
+              <option value="cn">中国 (cn)</option>
+              <option value="us">美国 (us)</option>
+              <option value="jp">日本 (jp)</option>
+              <option value="kr">韩国 (kr)</option>
+              <option value="gb">英国 (gb)</option>
+            </select>
+            <div
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
+            >
+              <i class="fas fa-chevron-down text-xs"> </i>
+            </div>
+          </div>
+          <!-- 设备选择器 -->
+          <div class="relative flex-1 min-w-[180px]">
+            <select
+              id="device"
+              class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-3 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            >
+              <option value="iphone">iPhone</option>
+              <option value="android">Android</option>
+            </select>
+            <div
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
+            >
+              <i class="fas fa-chevron-down text-xs"> </i>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- 2️⃣ 核心指标卡片区 -->
+      <section class="mb-8">
+        <h2 class="text-lg font-semibold mb-4 flex items-center">
+          <i class="fas fa-chart-pie text-primary mr-2"> </i>
+          核心指标分析
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- 新进榜应用数 -->
+          <div
+            class="card-gradient from-cardGradientStart to-cardGradientEnd rounded-xl shadow-sm p-5 border border-gray-100 transition-all hover:shadow-md"
+          >
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <p class="text-info text-sm">新进榜应用数</p>
+                <h3 class="text-2xl font-bold mt-1" id="newEntries">1,248</h3>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"
+              >
+                <i class="fas fa-arrow-circle-up"> </i>
+              </div>
+            </div>
+            <div class="flex items-center">
+              <span class="text-success text-sm font-medium flex items-center">
+                <i class="fas fa-arrow-up mr-1"> </i>
+                12.5%
+              </span>
+              <span class="text-info text-xs ml-2"> vs 上一周期 </span>
+            </div>
+          </div>
+          <!-- 掉榜应用数 -->
+          <div
+            class="card-gradient from-cardGradientStart to-cardGradientEnd rounded-xl shadow-sm p-5 border border-gray-100 transition-all hover:shadow-md"
+          >
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <p class="text-info text-sm">掉榜应用数</p>
+                <h3 class="text-2xl font-bold mt-1" id="droppedEntries">986</h3>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center text-danger"
+              >
+                <i class="fas fa-arrow-circle-down"> </i>
+              </div>
+            </div>
+            <div class="flex items-center">
+              <span class="text-danger text-sm font-medium flex items-center">
+                <i class="fas fa-arrow-up mr-1"> </i>
+                8.3%
+              </span>
+              <span class="text-info text-xs ml-2"> vs 上一周期 </span>
+            </div>
+          </div>
+          <!-- 热度最高类别 -->
+          <div
+            class="card-gradient from-cardGradientStart to-cardGradientEnd rounded-xl shadow-sm p-5 border border-gray-100 transition-all hover:shadow-md"
+          >
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <p class="text-info text-sm">热度最高类别</p>
+                <h3 class="text-xl font-bold mt-1" id="topGenre">游戏</h3>
+                <p class="text-info text-sm mt-1">
+                  占比
+                  <span class="font-semibold text-dark"> 32.7% </span>
+                </p>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center text-warning"
+              >
+                <i class="fas fa-fire"> </i>
+              </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div
+                class="bg-warning h-2 rounded-full"
+                style="width: 32.7%"
+              ></div>
+            </div>
+          </div>
+          <!-- 整体波动指数 -->
+          <div
+            class="card-gradient from-cardGradientStart to-cardGradientEnd rounded-xl shadow-sm p-5 border border-gray-100 transition-all hover:shadow-md"
+          >
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <p class="text-info text-sm">整体波动指数</p>
+                <h3 class="text-2xl font-bold mt-1" id="volatilityIndex">
+                  28.4%
+                </h3>
+              </div>
+              <div
+                class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary"
+              >
+                <i class="fas fa-chart-line"> </i>
+              </div>
+            </div>
+            <div class="flex items-center">
+              <span class="text-danger text-sm font-medium flex items-center">
+                <i class="fas fa-arrow-up mr-1"> </i>
+                4.2%
+              </span>
+              <span class="text-info text-xs ml-2"> vs 上一周期 </span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- 3️⃣ 波动与稳定分析 -->
+      <section
+        class="mb-8 bg-white rounded-xl shadow-sm p-5 border border-gray-100"
+      >
+        <h2 class="text-lg font-semibold mb-5 flex items-center">
+          <i class="fas fa-balance-scale-right text-primary mr-2"> </i>
+          波动与稳定分析
+        </h2>
+        <!-- 趋势折线图 -->
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-medium">整体排名波动率趋势</h3>
+            <div class="text-sm text-info">按日统计</div>
+          </div>
+          <div id="volatilityTrendChart" class="chart-container"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- 稳定 Top10 应用列表 -->
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-medium">稳定 Top10 应用</h3>
+              <div class="text-sm text-primary cursor-pointer hover:underline">
+                查看全部
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 px-2 font-medium text-info">
+                      排名
+                    </th>
+                    <th class="text-left py-3 px-2 font-medium text-info">
+                      应用名称
+                    </th>
+                    <th class="text-left py-3 px-2 font-medium text-info">
+                      平均排名
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="stableAppsTable">
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">1</td>
+                    <td class="py-3 px-2">微信</td>
+                    <td class="py-3 px-2 text-success">2.4</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">2</td>
+                    <td class="py-3 px-2">抖音</td>
+                    <td class="py-3 px-2 text-success">3.1</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">3</td>
+                    <td class="py-3 px-2">支付宝</td>
+                    <td class="py-3 px-2 text-success">4.7</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">4</td>
+                    <td class="py-3 px-2">QQ</td>
+                    <td class="py-3 px-2 text-success">5.3</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">5</td>
+                    <td class="py-3 px-2">淘宝</td>
+                    <td class="py-3 px-2 text-success">6.8</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">6</td>
+                    <td class="py-3 px-2">拼多多</td>
+                    <td class="py-3 px-2 text-success">7.2</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">7</td>
+                    <td class="py-3 px-2">京东</td>
+                    <td class="py-3 px-2 text-success">8.5</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">8</td>
+                    <td class="py-3 px-2">美团</td>
+                    <td class="py-3 px-2 text-success">9.3</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">9</td>
+                    <td class="py-3 px-2">百度地图</td>
+                    <td class="py-3 px-2 text-success">9.7</td>
+                  </tr>
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="py-3 px-2 font-medium">10</td>
+                    <td class="py-3 px-2">网易云音乐</td>
+                    <td class="py-3 px-2 text-success">9.9</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 高波动应用 Top10 列表 -->
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-medium">高波动应用 Top10</h3>
+              <div class="text-sm text-primary cursor-pointer hover:underline">
+                查看全部
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 px-2 font-medium text-info">
+                      排名
+                    </th>
+                    <th class="text-left py-3 px-2 font-medium text-info">
+                      应用名称
+                    </th>
+                    <th class="text-left py-3 px-2 font-medium text-info">
+                      标准差
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="volatileAppsTable">
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">1</td>
+                    <td class="py-3 px-2">原神</td>
+                    <td class="py-3 px-2 text-danger">87.4</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">2</td>
+                    <td class="py-3 px-2">王者荣耀</td>
+                    <td class="py-3 px-2 text-danger">76.2</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">3</td>
+                    <td class="py-3 px-2">和平精英</td>
+                    <td class="py-3 px-2 text-danger">68.9</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">4</td>
+                    <td class="py-3 px-2">阴阳师</td>
+                    <td class="py-3 px-2 text-danger">62.5</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">5</td>
+                    <td class="py-3 px-2">崩坏：星穹铁道</td>
+                    <td class="py-3 px-2 text-danger">58.3</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">6</td>
+                    <td class="py-3 px-2">光·遇</td>
+                    <td class="py-3 px-2 text-danger">54.7</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">7</td>
+                    <td class="py-3 px-2">明日方舟</td>
+                    <td class="py-3 px-2 text-danger">51.2</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">8</td>
+                    <td class="py-3 px-2">炉石传说</td>
+                    <td class="py-3 px-2 text-danger">48.6</td>
+                  </tr>
+                  <tr
+                    class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td class="py-3 px-2 font-medium">9</td>
+                    <td class="py-3 px-2">第五人格</td>
+                    <td class="py-3 px-2 text-danger">45.9</td>
+                  </tr>
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="py-3 px-2 font-medium">10</td>
+                    <td class="py-3 px-2">QQ飞车</td>
+                    <td class="py-3 px-2 text-danger">42.3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- 4️⃣ 类别趋势分析 -->
+      <section
+        class="mb-8 bg-white rounded-xl shadow-sm p-5 border border-gray-100"
+      >
+        <h2 class="text-lg font-semibold mb-5 flex items-center">
+          <i class="fas fa-chart-line text-primary mr-2"> </i>
+          类别趋势分析
+        </h2>
+        <div class="mb-4 flex flex-wrap items-center gap-4">
+          <div class="relative flex-1 min-w-[200px]">
+            <select
+              id="genreSelector"
+              class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-2 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            >
+              <option value="all">所有类别</option>
+              <option value="game" selected>游戏</option>
+              <option value="social">社交</option>
+              <option value="shopping">购物</option>
+              <option value="utility">工具</option>
+              <option value="education">教育</option>
+              <option value="entertainment">娱乐</option>
+            </select>
+            <div
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
+            >
+              <i class="fas fa-chevron-down text-xs"> </i>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button
+              class="genreViewBtn filter-active px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              data-view="trend"
+            >
+              趋势视图
+            </button>
+            <button
+              class="genreViewBtn bg-light px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              data-view="growth"
+            >
+              增长视图
+            </button>
+          </div>
+        </div>
+        <!-- 生命周期趋势折线图 -->
+        <div id="genreTrendContainer">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-medium">游戏类别热度趋势</h3>
+            <div class="text-sm text-info">应用数量与平均排名</div>
+          </div>
+          <div id="genreTrendChart" class="chart-container"></div>
+        </div>
+        <!-- 类别增长率柱状图 -->
+        <div id="genreGrowthContainer" class="hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-medium">各类别环比增长率</h3>
+            <div class="text-sm text-info">与上一周期比较</div>
+          </div>
+          <div id="genreGrowthChart" class="chart-container"></div>
+        </div>
+      </section>
+      <!-- 5️⃣ 预测数据准备 -->
+      <section
+        class="mb-8 bg-white rounded-xl shadow-sm p-5 border border-gray-100"
+      >
+        <h2 class="text-lg font-semibold mb-5 flex items-center">
+          <i class="fas fa-cogs text-primary mr-2"> </i>
+          预测数据准备
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- 特征重要性可视化 -->
+          <div class="lg:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-medium">特征重要性热力图</h3>
+              <div class="text-sm text-info">对预测模型的影响权重</div>
+            </div>
+            <div id="featureImportanceChart" class="chart-container"></div>
+          </div>
+          <!-- 数据导出与准备 -->
+          <div
+            class="card-gradient from-cardGradientStart to-cardGradientEnd rounded-xl p-5 border border-gray-100"
+          >
+            <h3 class="text-base font-medium mb-4">数据导出</h3>
+            <div class="space-y-4">
+              <div
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100"
+              >
+                <div>
+                  <p class="text-sm font-medium">当前筛选数据</p>
+                  <p class="text-xs text-info">包含所有指标与特征</p>
+                </div>
+                <button
+                  id="exportDataBtn"
+                  class="text-primary hover:text-primary/80 transition-colors"
+                >
+                  <i class="fas fa-download mr-1"> </i>
+                  导出
+                </button>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100"
+              >
+                <div>
+                  <p class="text-sm font-medium">特征工程数据集</p>
+                  <p class="text-xs text-info">预处理后的建模数据</p>
+                </div>
+                <button
+                  class="text-primary hover:text-primary/80 transition-colors"
+                >
+                  <i class="fas fa-download mr-1"> </i>
+                  导出
+                </button>
+              </div>
+              <div
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100"
+              >
+                <div>
+                  <p class="text-sm font-medium">时间序列数据</p>
+                  <p class="text-xs text-info">按日聚合的历史趋势</p>
+                </div>
+                <button
+                  class="text-primary hover:text-primary/80 transition-colors"
+                >
+                  <i class="fas fa-download mr-1"> </i>
+                  导出
+                </button>
+              </div>
+            </div>
+            <div class="mt-6">
+              <button
+                class="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg transition-colors flex items-center justify-center"
+              >
+                <i class="fas fa-magic mr-2"> </i>
+                生成预测模型输入
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+      <div class="container mx-auto px-4 text-center text-info text-sm">
+        <p>AppRank Analytics © 2023 | 手机应用榜单数据分析平台</p>
+        <p class="mt-1">为预测模型提供输入和趋势洞察</p>
+      </div>
+    </footer>
+    <!-- 数据导出模态框 -->
+    <div
+      id="exportModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden"
+    >
+      <div
+        class="bg-white rounded-xl p-6 w-full max-w-md mx-4 transform transition-all"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">导出数据</h3>
+          <button
+            id="closeExportModal"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            <i class="fas fa-times"> </i>
+          </button>
+        </div>
+        <div class="mb-5">
+          <p class="text-sm text-info mb-4">请选择导出格式和数据范围</p>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2"> 导出格式 </label>
+            <div class="flex gap-3">
+              <label
+                class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value="csv"
+                  checked
+                  class="mr-2"
+                />
+                <span> CSV </span>
+              </label>
+              <label
+                class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  value="json"
+                  class="mr-2"
+                />
+                <span> JSON </span>
+              </label>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2"> 数据范围 </label>
+            <div class="flex gap-3">
+              <label
+                class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="exportScope"
+                  value="current"
+                  checked
+                  class="mr-2"
+                />
+                <span> 当前筛选 </span>
+              </label>
+              <label
+                class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="exportScope"
+                  value="all"
+                  class="mr-2"
+                />
+                <span> 全部数据 </span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button
+            id="confirmExportBtn"
+            class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded-lg transition-colors"
+          >
+            确认导出
+          </button>
+          <button
+            id="cancelExportBtn"
+            class="flex-1 bg-light hover:bg-gray-200 py-2 rounded-lg transition-colors"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+    <script>
+      // 全局变量
+              let volatilityTrendChart = null;
+              let genreTrendChart = null;
+              let genreGrowthChart = null;
+              let featureImportanceChart = null;
+              let resizeTimer = null;
+              // 页面加载时初始化
+              document.addEventListener('DOMContentLoaded', () => {
+                  // 初始化图表
+                  initVolatilityTrendChart();
+                  initGenreTrendChart();
+                  initGenreGrowthChart();
+                  initFeatureImportanceChart();
+
+                  // 绑定事件监听
+                  bindEventListeners();
+
+                  // 监听窗口大小变化，调整图表尺寸
+                  window.addEventListener('resize', handleWindowResize);
+              });
+              // 初始化波动趋势图
+              function initVolatilityTrendChart() {
+                  const container = document.getElementById('volatilityTrendChart');
+                  volatilityTrendChart = echarts.init(container);
+
+                  // 生成过去30天的日期数据
+                  const dates = [];
+                  const today = new Date();
+                  for (let i = 29; i >= 0; i--) {
+                      const date = new Date(today);
+                      date.setDate(today.getDate() - i);
+                      dates.push(date.getMonth() + 1 + '/' + date.getDate());
+                  }
+
+                  // 生成随机波动指数数据
+                  const volatilityData = dates.map(() => (Math.random() * 15 + 20).toFixed(1));
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'axis',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderColor: '#EBEEF5',
+                          borderWidth: 1,
+                          padding: 10,
+                          textStyle: {
+                              color: '#303133'
+                          },
+                          formatter: function(params) {
+                              return `${params[0].name}<br/>波动指数: ${params[0].value}%`;
+                          }
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: dates,
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#E4E7ED'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#909399',
+                              fontSize: 10,
+                              interval: Math.floor(dates.length / 10) // 控制X轴标签显示密度
+                          }
+                      },
+                      yAxis: {
+                          type: 'value',
+                          axisLine: {
+                              show: false
+                          },
+                          axisLabel: {
+                              color: '#909399',
+                              formatter: '{value}%'
+                          },
+                          splitLine: {
+                              lineStyle: {
+                                  color: '#F2F3F5'
+                              }
+                          },
+                          min: Math.min(...volatilityData) * 0.9,
+                          max: Math.max(...volatilityData) * 1.1
+                      },
+                      series: [{
+                          data: volatilityData,
+                          type: 'line',
+                          smooth: true,
+                          lineStyle: {
+                              color: '#165DFF',
+                              width: 2
+                          },
+                          symbol: 'circle',
+                          symbolSize: 4,
+                          itemStyle: {
+                              color: '#165DFF',
+                              borderWidth: 2,
+                              borderColor: '#fff'
+                          },
+                          areaStyle: {
+                              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                  { offset: 0, color: 'rgba(22, 93, 255, 0.2)' },
+                                  { offset: 1, color: 'rgba(22, 93, 255, 0)' }
+                              ])
+                          }
+                      }]
+                  };
+
+                  volatilityTrendChart.setOption(option);
+              }
+              // 初始化类别趋势图
+              function initGenreTrendChart() {
+                  const container = document.getElementById('genreTrendChart');
+                  genreTrendChart = echarts.init(container);
+
+                  // 生成过去30天的日期数据
+                  const dates = [];
+                  const today = new Date();
+                  for (let i = 29; i >= 0; i--) {
+                      const date = new Date(today);
+                      date.setDate(today.getDate() - i);
+                      dates.push(date.getMonth() + 1 + '/' + date.getDate());
+                  }
+
+                  // 生成应用数量和平均排名数据
+                  const appCountData = dates.map((_, i) => 200 + Math.sin(i / 5) * 50 + Math.random() * 30);
+                  const avgRankData = dates.map((_, i) => 40 + Math.cos(i / 7) * 20 + Math.random() * 10);
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'axis',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderColor: '#EBEEF5',
+                          borderWidth: 1,
+                          padding: 10,
+                          textStyle: {
+                              color: '#303133'
+                          }
+                      },
+                      legend: {
+                          data: ['应用数量', '平均排名'],
+                          textStyle: {
+                              color: '#606266'
+                          },
+                          top: 0
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true,
+                          top: '15%'
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: dates,
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#E4E7ED'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#909399',
+                              fontSize: 10,
+                              interval: Math.floor(dates.length / 10)
+                          }
+                      },
+                      yAxis: [
+                          {
+                              type: 'value',
+                              name: '应用数量',
+                              nameTextStyle: {
+                                  color: '#165DFF'
+                              },
+                              axisLine: {
+                                  show: false
+                              },
+                              axisLabel: {
+                                  color: '#909399'
+                              },
+                              splitLine: {
+                                  lineStyle: {
+                                      color: '#F2F3F5'
+                                  }
+                              }
+                          },
+                          {
+                              type: 'value',
+                              name: '平均排名',
+                              nameTextStyle: {
+                                  color: '#F53F3F'
+                              },
+                              axisLine: {
+                                  show: false
+                              },
+                              axisLabel: {
+                                  color: '#909399'
+                              },
+                              splitLine: {
+                                  show: false
+                              },
+                              max: 100
+                          }
+                      ],
+                      series: [
+                          {
+                              name: '应用数量',
+                              type: 'line',
+                              data: appCountData,
+                              smooth: true,
+                              lineStyle: {
+                                  color: '#165DFF',
+                                  width: 2
+                              },
+                              symbol: 'circle',
+                              symbolSize: 4,
+                              itemStyle: {
+                                  color: '#165DFF',
+                                  borderWidth: 2,
+                                  borderColor: '#fff'
+                              },
+                              areaStyle: {
+                                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                      { offset: 0, color: 'rgba(22, 93, 255, 0.2)' },
+                                      { offset: 1, color: 'rgba(22, 93, 255, 0)' }
+                                  ])
+                              }
+                          },
+                          {
+                              name: '平均排名',
+                              type: 'line',
+                              data: avgRankData,
+                              smooth: true,
+                              yAxisIndex: 1,
+                              lineStyle: {
+                                  color: '#F53F3F',
+                                  width: 2
+                              },
+                              symbol: 'circle',
+                              symbolSize: 4,
+                              itemStyle: {
+                                  color: '#F53F3F',
+                                  borderWidth: 2,
+                                  borderColor: '#fff'
+                              },
+                              areaStyle: {
+                                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                      { offset: 0, color: 'rgba(245, 63, 63, 0.2)' },
+                                      { offset: 1, color: 'rgba(245, 63, 63, 0)' }
+                                  ])
+                              }
+                          }
+                      ]
+                  };
+
+                  genreTrendChart.setOption(option);
+              }
+              // 初始化类别增长率图
+              function initGenreGrowthChart() {
+                  const container = document.getElementById('genreGrowthChart');
+                  genreGrowthChart = echarts.init(container);
+
+                  const categories = ['游戏', '社交', '购物', '工具', '教育', '娱乐', '新闻', '健康'];
+                  const growthRates = categories.map(() => (Math.random() * 30 - 5).toFixed(1));
+
+                  // 根据增长率设置颜色
+                  const itemColors = growthRates.map(rate => rate >= 0 ? '#00B42A' : '#F53F3F');
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'axis',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderColor: '#EBEEF5',
+                          borderWidth: 1,
+                          padding: 10,
+                          textStyle: {
+                              color: '#303133'
+                          },
+                          formatter: function(params) {
+                              const rate = parseFloat(params[0].value);
+                              const trend = rate >= 0 ? '增长' : '下降';
+                              return `${params[0].name}<br/>环比${trend}: ${Math.abs(rate)}%`;
+                          }
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: categories,
+                          axisLine: {
+                              lineStyle: {
+                                  color: '#E4E7ED'
+                              }
+                          },
+                          axisLabel: {
+                              color: '#909399'
+                          }
+                      },
+                      yAxis: {
+                          type: 'value',
+                          axisLine: {
+                              show: false
+                          },
+                          axisLabel: {
+                              color: '#909399',
+                              formatter: '{value}%'
+                          },
+                          splitLine: {
+                              lineStyle: {
+                                  color: '#F2F3F5'
+                              }
+                          }
+                      },
+                      series: [{
+                          data: growthRates,
+                          type: 'bar',
+                          barWidth: '60%',
+                          itemStyle: {
+                              color: function(params) {
+                                  return itemColors[params.dataIndex];
+                              },
+                              borderRadius: [4, 4, 0, 0]
+                          },
+                          label: {
+                              show: true,
+                              position: 'top',
+                              color: function(params) {
+                                  return itemColors[params.dataIndex];
+                              },
+                              formatter: function(params) {
+                                  const rate = parseFloat(params.value);
+                                  return rate >= 0 ? `+${rate}%` : `${rate}%`;
+                              }
+                          }
+                      }]
+                  };
+
+                  genreGrowthChart.setOption(option);
+              }
+              // 初始化特征重要性热力图
+              function initFeatureImportanceChart() {
+                  const container = document.getElementById('featureImportanceChart');
+                  featureImportanceChart = echarts.init(container);
+
+                  const features = [
+                      '游戏', '社交', '购物', '工具', '教育', '娱乐', '新闻', '健康',
+                      '免费', '付费',
+                      'iPhone', 'Android',
+                      'CN', 'US', 'JP', 'KR'
+                  ];
+
+                  const importance = features.map(() => (Math.random() * 0.6 + 0.2).toFixed(2));
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'item',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          borderColor: '#EBEEF5',
+                          borderWidth: 1,
+                          padding: 10,
+                          textStyle: {
+                              color: '#303133'
+                          },
+                          formatter: function(params) {
+                              return `${params.name}<br/>重要性权重: ${params.value}`;
+                          }
+                      },
+                      grid: {
+                          left: '10%',
+                          right: '4%',
+                          bottom: '15%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['重要性权重'],
+                          axisLine: {
+                              show: false
+                          },
+                          axisLabel: {
+                              show: false
+                          },
+                          splitLine: {
+                              show: false
+                          }
+                      },
+                      yAxis: {
+                          type: 'category',
+                          data: features,
+                          axisLine: {
+                              show: false
+                          },
+                          axisLabel: {
+                              color: '#909399'
+                          },
+                          splitLine: {
+                              show: false
+                          }
+                      },
+                      visualMap: {
+                          min: 0.2,
+                          max: 0.8,
+                          calculable: true,
+                          orient: 'horizontal',
+                          left: 'center',
+                          bottom: 0,
+                          textStyle: {
+                              color: '#909399'
+                          },
+                          inRange: {
+                              color: ['#E0F2FF', '#165DFF']
+                          }
+                      },
+                      series: [{
+                          name: '特征重要性',
+                          type: 'heatmap',
+                          data: features.map((feature, index) => [0, index, importance[index]]),
+                          label: {
+                              show: true,
+                              formatter: function(params) {
+                                  return params.data[2];
+                              },
+                              color: '#303133'
+                          },
+                          itemStyle: {
+                              borderRadius: 4
+                          }
+                      }]
+                  };
+
+                  featureImportanceChart.setOption(option);
+              }
+              // 处理窗口大小变化，调整图表尺寸
+              function handleWindowResize() {
+                  clearTimeout(resizeTimer);
+                  resizeTimer = setTimeout(() => {
+                      if (volatilityTrendChart) volatilityTrendChart.resize();
+                      if (genreTrendChart) genreTrendChart.resize();
+                      if (genreGrowthChart) genreGrowthChart.resize();
+                      if (featureImportanceChart) featureImportanceChart.resize();
+                  }, 300);
+              }
+              // 绑定事件监听
+              function bindEventListeners() {
+                  // 筛选器变化事件
+                  const filters = ['timeRange', 'chartType', 'region', 'device', 'genreSelector'];
+                  filters.forEach(filterId => {
+                      document.getElementById(filterId).addEventListener('change', refreshData);
+                  });
+
+                  // 类别视图切换按钮
+                  const genreViewBtns = document.querySelectorAll('.genreViewBtn');
+                  genreViewBtns.forEach(btn => {
+                      btn.addEventListener('click', function() {
+                          // 移除所有按钮的active状态
+                          genreViewBtns.forEach(b => {
+                              b.classList.remove('filter-active');
+                              b.classList.add('bg-light');
+                          });
+
+                          // 添加当前按钮的active状态
+                          this.classList.add('filter-active');
+                          this.classList.remove('bg-light');
+
+                          // 显示对应的图表容器
+                          const viewType = this.getAttribute('data-view');
+                          if (viewType === 'trend') {
+                              document.getElementById('genreTrendContainer').classList.remove('hidden');
+                              document.getElementById('genreGrowthContainer').classList.add('hidden');
+                              if (genreTrendChart) genreTrendChart.resize();
+                          } else {
+                              document.getElementById('genreTrendContainer').classList.add('hidden');
+                              document.getElementById('genreGrowthContainer').classList.remove('hidden');
+                              if (genreGrowthChart) genreGrowthChart.resize();
+                          }
+                      });
+                  });
+
+                  // 导出数据按钮
+                  document.getElementById('exportDataBtn').addEventListener('click', function() {
+                      document.getElementById('exportModal').classList.remove('hidden');
+                  });
+
+                  // 关闭导出模态框
+                  document.getElementById('closeExportModal').addEventListener('click', function() {
+                      document.getElementById('exportModal').classList.add('hidden');
+                  });
+
+                  document.getElementById('cancelExportModal').addEventListener('click', function() {
+                      document.getElementById('exportModal').classList.add('hidden');
+                  });
+
+                  // 确认导出
+                  document.getElementById('confirmExportBtn').addEventListener('click', function() {
+                      const format = document.querySelector('input[name="exportFormat"]:checked').value;
+                      const scope = document.querySelector('input[name="exportScope"]:checked').value;
+
+                      // 模拟导出数据
+                      alert(`正在导出${scope === 'current' ? '当前筛选' : '全部'}数据，格式：${format.toUpperCase()}`);
+
+                      document.getElementById('exportModal').classList.add('hidden');
+                  });
+              }
+              // 模拟数据刷新
+              function refreshData() {
+                  // 显示加载状态（这里简化处理，实际项目中应该显示加载动画）
+                  const loadingText = '加载中...';
+                  document.getElementById('newEntries').textContent = loadingText;
+                  document.getElementById('droppedEntries').textContent = loadingText;
+                  document.getElementById('topGenre').textContent = loadingText;
+                  document.getElementById('volatilityIndex').textContent = loadingText;
+
+                  // 模拟网络请求延迟
+                  setTimeout(() => {
+                      // 随机更新核心指标数据
+                      document.getElementById('newEntries').textContent = Math.floor(Math.random() * 500 + 1000).toLocaleString();
+                      document.getElementById('droppedEntries').textContent = Math.floor(Math.random() * 400 + 800).toLocaleString();
+
+                      // 随机更新热度最高类别
+                      const genres = ['游戏', '社交', '购物', '工具', '教育', '娱乐'];
+                      const randomGenre = genres[Math.floor(Math.random() * genres.length)];
+                      const randomPercentage = (Math.random() * 20 + 25).toFixed(1);
+                      document.getElementById('topGenre').textContent = randomGenre;
+                      document.querySelector('#topGenre + p span').textContent = `${randomPercentage}%`;
+                      document.querySelector('#topGenre + p + div div').style.width = `${randomPercentage}%`;
+
+                      // 随机更新波动指数
+                      const volatilityIndex = (Math.random() * 15 + 20).toFixed(1);
+                      document.getElementById('volatilityIndex').textContent = `${volatilityIndex}%`;
+
+                      // 重新初始化所有图表以刷新数据
+                      initVolatilityTrendChart();
+                      initGenreTrendChart();
+                      initGenreGrowthChart();
+                      initFeatureImportanceChart();
+
+                  }, 800);
+              }
+    </script>
+  </body>
+</html>

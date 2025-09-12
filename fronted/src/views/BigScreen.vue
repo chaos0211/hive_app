@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-secondary text-gray-200 font-inter min-h-screen bg-grid">
+  <div class="bg-secondary text-gray-200 font-inter min-h-screen bg-grid" :class="{ 'edge-full': isEdgeFull }">
     <!-- 顶部导航栏 -->
     <header class="bg-primary/80 backdrop-blur-md border-b border-accent/20 sticky top-0 z-50">
       <div class="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -8,7 +8,7 @@
             <i class="fas fa-cloud text-white text-xl"></i>
           </div>
           <h1 class="text-[clamp(1.2rem,3vw,1.5rem)] font-bold text-white text-shadow">
-            云管理平台数据大屏
+            APP 榜单管理平台
           </h1>
         </div>
         <div class="flex items-center space-x-6">
@@ -23,17 +23,32 @@
             </div>
           </div>
           <div class="flex items-center space-x-3">
-            <button class="w-9 h-9 rounded-full bg-dark-light flex items-center justify-center hover:bg-accent/20 transition-colors">
-              <i class="fas fa-bell text-gray-300"></i>
+            <button
+              class="w-9 h-9 rounded-full bg-dark-light flex items-center justify-center hover:bg-accent/20 transition-colors"
+              @click="toggleEdgeFull"
+              :aria-label="isEdgeFull ? '退出全屏' : '进入全屏'"
+              :title="isEdgeFull ? '退出全屏' : '进入全屏'"
+            >
+              <!-- 进入全屏图标（四角外扩） -->
+              <svg v-if="!isEdgeFull" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor">
+                <path d="M4 9V5a1 1 0 0 1 1-1h4v2H7v3H4zm10-5h4a1 1 0 0 1 1 1v4h-2V7h-3V4zm5 10v4a1 1 0 0 1-1 1h-4v-2h3v-3h2zM4 14h2v3h3v2H5a1 1 0 0 1-1-1v-4z"/>
+              </svg>
+              <!-- 退出全屏图标（四角内收） -->
+              <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor">
+                <path d="M9 11H7V8H4V6h4a1 1 0 0 1 1 1v4zm6-5h4v2h-3v3h-2V7a1 1 0 0 1 1-1zM8 17H4v-2h3v-3h2v4a1 1 0 0 1-1 1zm6-5h2v3h3v2h-4a1 1 0 0 1-1-1v-4z"/>
+              </svg>
             </button>
-            <div class="flex items-center space-x-2">
-              <img
-                src="https://design.gemcoder.com/staticResource/echoAiSystemImages/56618f14ad2edddada7a9b5466558bb3.png"
-                alt="用户头像"
-                class="w-9 h-9 rounded-full object-cover border-2 border-accent/50"
-              />
-              <span class="hidden md:inline text-sm font-medium">管理员</span>
-            </div>
+<!--            <button class="w-9 h-9 rounded-full bg-dark-light flex items-center justify-center hover:bg-accent/20 transition-colors">-->
+<!--              <i class="fas fa-bell text-gray-300"></i>-->
+<!--            </button>-->
+<!--            <div class="flex items-center space-x-2">-->
+<!--              <img-->
+<!--                src="https://design.gemcoder.com/staticResource/echoAiSystemImages/56618f14ad2edddada7a9b5466558bb3.png"-->
+<!--                alt="用户头像"-->
+<!--                class="w-9 h-9 rounded-full object-cover border-2 border-accent/50"-->
+<!--              />-->
+<!--              <span class="hidden md:inline text-sm font-medium">管理员</span>-->
+<!--            </div>-->
           </div>
         </div>
       </div>
@@ -266,10 +281,9 @@
             <div class="h-[250px]" ref="orderTrendChart"></div>
           </div>
 
-          <!-- 虚拟机TOP10排行 -->
           <div class="bg-primary/50 rounded-lg p-5 gradient-border card-glow">
             <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-semibold">APP TOP10排行</h2>
+              <h2 class="text-lg font-semibold">APP TOP5排行</h2>
               <div class="flex space-x-2">
                 <button
                   :class="[
@@ -291,10 +305,12 @@
                 </button>
               </div>
             </div>
+            <div v-if="topLoading" class="text-sm text-gray-400 p-2">加载中…</div>
+            <div v-else-if="topError" class="text-sm text-danger p-2">{{ topError }}</div>
             <div class="space-y-3 max-h-[200px] overflow-y-auto pr-1">
               <div
-                v-for="(item, index) in topVms"
-                :key="item.name"
+                v-for="(item, index) in topApps.slice(0,5)"
+                :key="item.name + '_' + index"
                 class="flex items-center justify-between p-2"
               >
                 <div class="flex items-center">
@@ -305,8 +321,8 @@
                     <span :class="item.rankTextClass" class="font-medium">{{ index + 1 }}</span>
                   </div>
                   <div>
-                    <h4 class="text-sm font-medium">{{ item.name }}</h4>
-                    <p class="text-xs text-gray-400">{{ item.count }}台虚拟机</p>
+                    <h4 class="text-sm font-medium one-line max-w-72">{{ cutCn(item.name, 7) }}</h4>
+                    <p class="text-xs text-gray-400 one-line max-w-72">{{ cutCn(item.publisher, 7) }}</p>
                   </div>
                 </div>
                 <div class="w-24 bg-dark-light h-2 rounded-full overflow-hidden">
@@ -333,8 +349,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
+import { getTopApps } from '@/api/analytics'
+
+const isEdgeFull = ref(false)
+
+const toggleEdgeFull = () => {
+  isEdgeFull.value = !isEdgeFull.value
+  const root = document.documentElement
+  if (isEdgeFull.value) {
+    root.classList.add('edge-full-active')
+  } else {
+    root.classList.remove('edge-full-active')
+  }
+}
+
+const onKeyDown = (e) => {
+  if (e.key === 'Escape' && isEdgeFull.value) {
+    isEdgeFull.value = false
+    document.documentElement.classList.remove('edge-full-active')
+  }
+}
 
 // 响应式数据
 const currentDate = ref('')
@@ -397,6 +433,94 @@ const alerts = ref([
     borderClass: 'border-accent'
   }
 ])
+
+// —— APP TOP 排行（从后端获取） ——
+// 列表数据（用于替换原先 topVms）
+const topApps = ref([])
+const topLoading = ref(false)
+const topError = ref('')
+
+// 页签 -> brand_id（免费=1，付费=0）
+// 你当前 activeTab 初始为 'system'，点击第二个按钮时会设置为 'organization'
+const tabToBrandId = {
+  system: 1,
+  organization: 0,
+}
+
+async function loadTopApps() {
+  topLoading.value = true
+  topError.value = ''
+  try {
+    const brand_id = tabToBrandId[activeTab.value] ?? 1
+    const params = { brand_id, country: 'cn', device: 'iphone', limit: 10 }
+    const res = await getTopApps(params)
+
+    // 兼容后端返回：数组 或 { data: [] }
+    const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+
+    // 按 ranking 升序（防守式，后端若已排序这里也没问题）
+    list.sort((a, b) => {
+      const ra = Number(a?.ranking ?? 999999)
+      const rb = Number(b?.ranking ?? 999999)
+      return ra - rb
+    })
+
+    // 计算 genre 占比：用当前列表中 app_genre 的分布来近似（后端稍后优化为严格按“最近一次日期”全集统计）
+    const total = list.length || 1
+    const genreCount = {}
+    list.forEach(r => {
+      const g = r.app_genre || '未知'
+      genreCount[g] = (genreCount[g] || 0) + 1
+    })
+
+    // 映射为 UI 结构
+    topApps.value = list.map((r, i) => {
+      const rank = Number(r?.ranking ?? (i + 1))
+      const g = r?.app_genre || '未知'
+      const pct = Math.round((genreCount[g] / total) * 100)
+
+      // 前 4 名上不同色，其余灰
+      const colorMap = [
+        { bg: 'bg-accent/20',  text: 'text-accent',  bar: 'bg-accent'  },
+        { bg: 'bg-success/20', text: 'text-success', bar: 'bg-success' },
+        { bg: 'bg-warning/20', text: 'text-warning', bar: 'bg-warning' },
+        { bg: 'bg-danger/20',  text: 'text-danger',  bar: 'bg-danger'  }
+      ]
+      const color = colorMap[i] || { bg: 'bg-dark-light', text: 'text-gray-300', bar: 'bg-gray-400' }
+
+      return {
+        // 标题：app_name（例如“企业资源管理系统”替换为免费榜 top1 的 app_name）
+        name: r?.app_name || r?.name || r?.app_id || `#${rank}`,
+        // 副标题：publisher（例如“128台虚拟机”替换为发行商）
+        publisher: r?.publisher || '',
+        // 进度条：该 app_genre 的占比（0~100）
+        percentage: Math.max(0, Math.min(100, pct)),
+        // 展示排名用
+        rank: rank,
+        // 样式类
+        rankBgClass: color.bg,
+        rankTextClass: color.text,
+        barColorClass: color.bar,
+      }
+    })
+  } catch (e) {
+    console.error('loadTopApps error', e)
+    topError.value = '加载失败'
+    topApps.value = []
+  } finally {
+    topLoading.value = false
+  }
+}
+
+// 切换“免费榜/付费榜”时自动刷新
+watch(activeTab, () => { loadTopApps() })
+
+// 将字符串裁切为前 N 个字符（按 Unicode code point 计算）
+const cutCn = (s, limit = 7) => {
+  if (!s) return ''
+  const arr = Array.from(String(s))
+  return arr.slice(0, limit).join('')
+}
 
 // TOP虚拟机数据
 const topVms = ref([
@@ -800,9 +924,11 @@ onMounted(async () => {
   // 等待DOM渲染完成后初始化图表
   await nextTick()
   initCharts()
+  await loadTopApps()
 
   // 监听窗口大小变化
   window.addEventListener('resize', resizeCharts)
+  window.addEventListener('keydown', onKeyDown)
 })
 
 onUnmounted(() => {
@@ -810,6 +936,8 @@ onUnmounted(() => {
   if (timeInterval) {
     clearInterval(timeInterval)
   }
+  // 状态复位: 移除全局样式类
+  document.documentElement.classList.remove('edge-full-active')
 
   // 销毁图表实例
   charts.forEach(chart => {
@@ -817,6 +945,7 @@ onUnmounted(() => {
   })
 
   // 移除事件监听
+  window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('resize', resizeCharts)
 })
 </script>
@@ -1019,4 +1148,28 @@ body {
 .text-\[clamp\(1\.2rem\,3vw\,1\.5rem\)\] {
   font-size: clamp(1.2rem, 3vw, 1.5rem);
 }
+
+/* Utility classes for one-line ellipsis and max width */
+.one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.max-w-72 { max-width: 18rem; }
 </style>
+
+/* In-window fullscreen (edge-to-edge within browser window) */
+.edge-full {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999; /* above layout sidebar/header */
+  overflow: auto;
+}
+.edge-full .container { max-width: 100vw; }
+
+/* Hide app layout chrome (sidebar/header) when edge fullscreen is active */
+html.edge-full-active body > aside,
+html.edge-full-active body > header {
+  display: none !important;
+}
+html.edge-full-active body {
+  overflow: hidden;
+}
