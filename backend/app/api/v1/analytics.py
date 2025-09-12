@@ -291,8 +291,184 @@ async def volatility_trend(
 
     labels = [r[0].isoformat() for r in rows]
     values = [round(float(r[1]), 2) if r[1] is not None else 0.0 for r in rows]
-
     return {"labels": labels, "values": values}
+
+
+# 类别热度趋势（趋势视图）
+@router.get("/genre-trend")
+async def genre_trend(
+    days: int = 30,
+    brand_id: int = 1,
+    country: str = "cn",
+    device: str = "iphone",
+    genre: str = "all",    # 'all' 表示不限定类别
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    类别热度趋势（趋势视图）：
+    - 返回最近 days 天（含最新日）的日期 labels、每日上榜应用数量 app_count、每日平均排名 avg_rank。
+    - 平均排名口径：同日同 app 取最好名次 MIN(COALESCE(ranking, index))，再对该日求 avg。
+    - 当 `genre='all'` 时不限定类别；否则按给定 app_genre 过滤。
+    """
+    days = max(1, min(days, 365))
+
+    # 最近一次 chart_date
+    latest_stmt = (
+        select(func.max(AppStoreRankingDaily.chart_date))
+        .where(
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+        )
+    )
+    latest_date = (await session.execute(latest_stmt)).scalar_one_or_none()
+    if not latest_date:
+        return {"labels": [], "app_count": [], "avg_rank": []}
+
+    from datetime import timedelta
+    start_date = latest_date - timedelta(days=days - 1)
+
+    # 公共过滤条件
+    def _base_where():
+        conds = [
+            AppStoreRankingDaily.chart_date >= start_date,
+            AppStoreRankingDaily.chart_date <= latest_date,
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+        ]
+        if genre != "all":
+            conds.append(AppStoreRankingDaily.app_genre == genre)
+        return conds
+
+    # 每日上榜应用数量（去重 app_id）
+    app_cnt_stmt = (
+        select(AppStoreRankingDaily.chart_date, func.count(func.distinct(AppStoreRankingDaily.app_id)))
+        .where(*_base_where())
+        .group_by(AppStoreRankingDaily.chart_date)
+        .order_by(AppStoreRankingDaily.chart_date)
+    )
+    app_cnt_rows = (await session.execute(app_cnt_stmt)).all()
+    app_cnt_map = {d.isoformat(): int(c) for d, c in app_cnt_rows}
+
+    # 每日平均最好名次
+    rank_expr = func.coalesce(AppStoreRankingDaily.ranking, AppStoreRankingDaily.index)
+    best_per_app = (
+        select(
+            AppStoreRankingDaily.chart_date.label("chart_date"),
+            AppStoreRankingDaily.app_id.label("app_id"),
+            func.min(rank_expr).label("best_rank"),
+        )
+        .where(*(_base_where() + [rank_expr.isnot(None)]))
+        .group_by(AppStoreRankingDaily.chart_date, AppStoreRankingDaily.app_id)
+    ).subquery()
+
+    avg_rank_stmt = (
+        select(best_per_app.c.chart_date, func.avg(best_per_app.c.best_rank))
+        .group_by(best_per_app.c.chart_date)
+        .order_by(best_per_app.c.chart_date)
+    )
+    avg_rank_rows = (await session.execute(avg_rank_stmt)).all()
+    avg_rank_map = {d.isoformat(): round(float(v), 2) for d, v in avg_rank_rows if v is not None}
+
+    # 组装完整日期轴
+    x_dates = [start_date + timedelta(days=i) for i in range(days)]
+    labels = [d.isoformat() for d in x_dates]
+    app_count = [app_cnt_map.get(lab, 0) for lab in labels]
+    avg_rank = [avg_rank_map.get(lab, None) for lab in labels]
+
+    return {"labels": labels, "app_count": app_count, "avg_rank": avg_rank}
+
+
+# 各类别环比增长率（增长视图）
+@router.get("/genre-growth")
+async def genre_growth(
+    days: int = 30,
+    brand_id: int = 1,
+    country: str = "cn",
+    device: str = "iphone",
+    genre: str = "all",
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    各类别环比增长率（增长视图）：
+    - 支持 `genre` 过滤：当 `genre!='all'` 时，仅统计该 app_genre；否则统计所有类别。
+    - 以去重 app_id 数量为“热度”，对比当前周期 vs 上一周期，计算各类别增长率。
+    - 返回 items: [{ genre, current_count, prev_count, growth }]
+    """
+    days = max(1, min(days, 365))
+
+    # 最近一次 chart_date
+    latest_stmt = (
+        select(func.max(AppStoreRankingDaily.chart_date))
+        .where(
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+        )
+    )
+    latest_date = (await session.execute(latest_stmt)).scalar_one_or_none()
+    if not latest_date:
+        return {"items": []}
+
+    from datetime import timedelta
+    cur_start = latest_date - timedelta(days=days - 1)
+    cur_end = latest_date
+    prev_end = cur_start - timedelta(days=1)
+    prev_start = prev_end - timedelta(days=days - 1)
+
+    # 当前周期：各类别去重 app 数
+    cur_stmt = (
+        select(AppStoreRankingDaily.app_genre, func.count(func.distinct(AppStoreRankingDaily.app_id)).label("cnt"))
+        .where(
+            AppStoreRankingDaily.chart_date >= cur_start,
+            AppStoreRankingDaily.chart_date <= cur_end,
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+            *( [AppStoreRankingDaily.app_genre == genre] if genre != "all" else [] ),
+        )
+        .group_by(AppStoreRankingDaily.app_genre)
+    )
+    cur_rows = (await session.execute(cur_stmt)).all()
+    cur_map = {(g or "未知"): int(c) for g, c in cur_rows}
+
+    # 上一周期：各类别去重 app 数
+    prev_stmt = (
+        select(AppStoreRankingDaily.app_genre, func.count(func.distinct(AppStoreRankingDaily.app_id)).label("cnt"))
+        .where(
+            AppStoreRankingDaily.chart_date >= prev_start,
+            AppStoreRankingDaily.chart_date <= prev_end,
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+            *( [AppStoreRankingDaily.app_genre == genre] if genre != "all" else [] ),
+        )
+        .group_by(AppStoreRankingDaily.app_genre)
+    )
+    prev_rows = (await session.execute(prev_stmt)).all()
+    prev_map = {(g or "未知"): int(c) for g, c in prev_rows}
+
+    # 合并键并计算增长率
+    all_genres = set(cur_map.keys()) | set(prev_map.keys())
+    items = []
+    for g in sorted(all_genres):
+        cur = cur_map.get(g, 0)
+        prev = prev_map.get(g, 0)
+        if prev > 0:
+            growth = round((cur - prev) * 100.0 / prev, 1)
+        else:
+            growth = 100.0 if cur > 0 else 0.0
+        items.append({
+            "genre": g,
+            "current_count": cur,
+            "prev_count": prev,
+            "growth": growth,
+        })
+
+    # 默认按增长率降序排序
+    items.sort(key=lambda x: x["growth"], reverse=True)
+    return {"items": items}
 
 @router.get("/overview-kpis")
 async def overview_kpis(
@@ -567,3 +743,54 @@ async def volatile_top10(
         order="volatile",
         limit=limit,
     )
+
+
+@router.get("/genres")
+async def list_genres(
+    days: int = 30,
+    brand_id: int = 1,
+    country: str = "cn",
+    device: str = "iphone",
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    返回最近 days 天内（含最新日），在指定 brand_id/country/device 下出现过的 app_genre（中文），
+    按去重 app_id 数量从高到低排序。只返回字符串数组。
+    """
+    # 找最近一次榜单日期
+    latest_stmt = (
+        select(func.max(AppStoreRankingDaily.chart_date))
+        .where(
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+        )
+    )
+    latest_date = (await session.execute(latest_stmt)).scalar_one_or_none()
+    if not latest_date:
+        return {"items": []}
+
+    from datetime import timedelta
+    start_date = latest_date - timedelta(days=max(1, min(days, 365)) - 1)
+
+    # 统计各类别热度（按去重 app_id）
+    stmt = (
+        select(
+            AppStoreRankingDaily.app_genre,
+            func.count(func.distinct(AppStoreRankingDaily.app_id)).label("cnt"),
+        )
+        .where(
+            AppStoreRankingDaily.chart_date >= start_date,
+            AppStoreRankingDaily.chart_date <= latest_date,
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+            AppStoreRankingDaily.app_genre.isnot(None),
+            AppStoreRankingDaily.app_genre != "",
+        )
+        .group_by(AppStoreRankingDaily.app_genre)
+        .order_by(func.count(func.distinct(AppStoreRankingDaily.app_id)).desc())
+    )
+    rows = (await session.execute(stmt)).all()
+    items = [g for g, _ in rows]
+    return {"items": items}

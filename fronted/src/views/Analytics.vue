@@ -180,39 +180,47 @@
         </h2>
         <div class="mb-4 flex flex-wrap items-center gap-4">
           <div class="relative flex-1 min-w-[200px]">
-            <select v-model="genre" class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-2 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
-              <option value="all">所有类别</option>
-              <option value="game">游戏</option>
-              <option value="social">社交</option>
-              <option value="shopping">购物</option>
-              <option value="utility">工具</option>
-              <option value="education">教育</option>
-              <option value="entertainment">娱乐</option>
+            <select v-model="genre"
+              class="w-full appearance-none bg-light border border-gray-200 rounded-lg py-2 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            >
+              <!-- 增长视图：显示“所有类别”选项 -->
+              <option v-if="view === 'growth'" value="all">所有类别</option>
+              <!-- 两个视图都显示真实类别列表（趋势视图不会显示 all） -->
+              <option v-for="g in genreOptions" :key="g" :value="g">{{ g }}</option>
             </select>
             <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
               <i class="fas fa-chevron-down text-xs"></i>
             </div>
           </div>
           <div class="flex gap-2">
-            <button :class="['genreViewBtn', view==='trend' ? 'filter-active' : 'bg-light', 'px-4','py-2','rounded-lg','text-sm','font-medium','transition-all']" @click="view='trend'">趋势视图</button>
-            <button :class="['genreViewBtn', view==='growth' ? 'filter-active' : 'bg-light', 'px-4','py-2','rounded-lg','text-sm','font-medium','transition-all']" @click="view='growth'">增长视图</button>
+            <button :class="['genreViewBtn', view==='trend' ? 'filter-active' : 'bg-light', 'px-4','py-2','rounded-lg','text-sm','font-medium','transition-all']" @click="switchView('trend')">趋势视图</button>
+            <button :class="['genreViewBtn', view==='growth' ? 'filter-active' : 'bg-light', 'px-4','py-2','rounded-lg','text-sm','font-medium','transition-all']" @click="switchView('growth')">增长视图</button>
           </div>
         </div>
         <!-- 生命周期趋势折线图 -->
-        <div v-show="view==='trend'">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-base font-medium">{{ genreTitle }}类别热度趋势</h3>
-            <div class="text-sm text-info">应用数量与平均排名</div>
-          </div>
-          <div ref="genreTrendEl" class="chart-container"></div>
+        <div v-show="view==='trend'" class="min-h-[360px]">
+          <GenreTrendChart
+            :key="`trend-${timeRange}-${brandId}-${region}-${device}-${genre}`"
+            :title="`${genreTitle}类别热度趋势`"
+            :days="Number(timeRange)"
+            :brandId="brandId"
+            :country="region"
+            :device="device"
+            :genre="genre"
+            :visible="view==='trend'"
+          />
         </div>
+
         <!-- 类别增长率柱状图 -->
         <div v-show="view==='growth'">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-base font-medium">各类别环比增长率</h3>
-            <div class="text-sm text-info">与上一周期比较</div>
-          </div>
-          <div ref="genreGrowthEl" class="chart-container"></div>
+          <GenreGrowthBar
+            :days="Number(timeRange)"
+            :brandId="brandId"
+            :country="region"
+            :device="device"
+            :genre="genre"
+            :visible="view==='growth'"
+          />
         </div>
       </section>
 
@@ -329,14 +337,19 @@ import VolatilityTrendChart from '@/components/charts/VolatilityTrendChart.vue'
 import { getVolatilityTrend } from '@/api/analytics'
 import KpiCard from '@/components/common/KpiCard.vue'
 import { getOverviewKpis } from '@/api/analytics'
+import { getGenres } from '@/api/analytics'
 import TopAppsList from '@/components/charts/TopAppsList.vue'
+import GenreTrendChart from '@/components/charts/GenreTrendChart.vue'
+import GenreGrowthBar from '@/components/charts/GenreGrowthBar.vue'
 
 // —— 顶部筛选 ——
 const timeRange = ref('30')
 const chartType = ref<'free' | 'paid' | 'grossing'>('free')
 const region = ref('cn')
 const device = ref<'iphone' | 'android'>('iphone')
-const genre = ref('game')
+const genre = ref<'all' | string>('all')
+const genreOptions = ref<string[]>([])
+const brandId = computed(() => (chartType.value === 'paid' ? 0 : chartType.value === 'free' ? 1 : 2))
 const view = ref<'trend'|'growth'>('trend')
 const volLabels = ref<string[]>([])
 const volValues = ref<number[]>([])
@@ -357,13 +370,9 @@ const droppedEntriesText = computed(() => droppedEntries.value == null ? loading
 
 // —— 图表容器 ——
 const volatilityTrendEl = ref<HTMLDivElement|null>(null)
-const genreTrendEl = ref<HTMLDivElement|null>(null)
-const genreGrowthEl = ref<HTMLDivElement|null>(null)
 const featureImportanceEl = ref<HTMLDivElement|null>(null)
 
 let volatilityTrendChart: echarts.ECharts | null = null
-let genreTrendChart: echarts.ECharts | null = null
-let genreGrowthChart: echarts.ECharts | null = null
 let featureImportanceChart: echarts.ECharts | null = null
 
 
@@ -372,7 +381,7 @@ async function fetchVolatility() {
   try {
     const { labels, values } = await getVolatilityTrend({
       range: Number(timeRange.value),
-      brand_id: chartType.value === 'paid' ? 0 : chartType.value === 'free' ? 1 : 2,
+      brand_id: brandId.value,
       country: region.value,
       device: device.value
     })
@@ -383,16 +392,46 @@ async function fetchVolatility() {
   }
 }
 
-const genreMap: Record<string, string> = {
-  all: '所有',
-  game: '游戏',
-  social: '社交',
-  shopping: '购物',
-  utility: '工具',
-  education: '教育',
-  entertainment: '娱乐'
+async function fetchGenres() {
+  const items = await getGenres({
+    days: Number(timeRange.value),
+    brand_id: brandId.value,
+    country: region.value,
+    device: device.value,
+  })
+  genreOptions.value = Array.isArray(items) ? items : []
+  // 与当前视图对齐：趋势视图不允许 all；增长视图允许 all
+  if (view.value === 'trend') {
+    if (genre.value === 'all' || !genreOptions.value.includes(genre.value)) {
+      genre.value = genreOptions.value[0] || ''
+    }
+  } else {
+    // 增长视图：默认 all，但允许手动选择具体类别；如果当前值不在列表且不是 all，回退到 all
+    if (!genreOptions.value.includes(genre.value)) {
+      genre.value = 'all'
+    }
+  }
 }
-const genreTitle = computed(() => genreMap[genre.value] ?? '')
+
+
+const genreTitle = computed(() => (genre.value === 'all' ? '所有' : genre.value))
+
+function switchView(v: 'trend'|'growth'){
+  view.value = v
+  if (v === 'growth') {
+    // 增长视图：默认“所有类别”
+    genre.value = 'all'
+  } else {
+    // 趋势视图：不允许 all；如果当前是 all 或不在列表里，默认第一个真实类别
+    if (genre.value === 'all' || !genreOptions.value.includes(genre.value)){
+      genre.value = genreOptions.value[0] || ''
+    }
+  }
+}
+
+watch([timeRange, chartType, region, device], () => {
+  fetchGenres()
+}, { immediate: true })
 
 // —— 初始化与更新 ——
 watch([timeRange, chartType, region, device, genre, view], async ()=>{
@@ -415,21 +454,15 @@ onBeforeUnmount(() => {
 
 function handleResize(){
   volatilityTrendChart?.resize();
-  genreTrendChart?.resize();
-  genreGrowthChart?.resize();
   featureImportanceChart?.resize();
 }
 
 function destroyCharts(){
   volatilityTrendChart?.dispose(); volatilityTrendChart=null
-  genreTrendChart?.dispose(); genreTrendChart=null
-  genreGrowthChart?.dispose(); genreGrowthChart=null
   featureImportanceChart?.dispose(); featureImportanceChart=null
 }
 
 function initCharts(){
-  initGenreTrendChart()
-  initGenreGrowthChart()
   initFeatureImportanceChart()
 }
 
@@ -444,48 +477,17 @@ function genLastNDates(n:number){
 }
 
 
-function initGenreTrendChart(){
-  if(!genreTrendEl.value) return
-  genreTrendChart = echarts.init(genreTrendEl.value)
-  const dates = genLastNDates(30)
-  const appCount = dates.map((_,i)=> 200 + Math.sin(i/5)*50 + Math.random()*30)
-  const avgRank  = dates.map((_,i)=> 40 + Math.cos(i/7)*20 + Math.random()*10)
-  const option: echarts.EChartsOption = {
-    tooltip:{ trigger:'axis', backgroundColor:'rgba(255,255,255,0.9)', borderColor:'#EBEEF5', borderWidth:1, padding:10, textStyle:{color:'#303133'} },
-    legend:{ data:['应用数量','平均排名'], textStyle:{ color:'#606266' }, top:0 },
-    grid:{ left:'3%', right:'4%', bottom:'3%', containLabel:true, top:'15%' },
-    xAxis:{ type:'category', data:dates, axisLine:{ lineStyle:{ color:'#E4E7ED'}}, axisLabel:{ color:'#909399', fontSize:10, interval: Math.floor(dates.length/10)} },
-    yAxis:[
-      { type:'value', name:'应用数量', nameTextStyle:{ color:'#165DFF'}, axisLine:{show:false}, axisLabel:{ color:'#909399'}, splitLine:{ lineStyle:{ color:'#F2F3F5'}} },
-      { type:'value', name:'平均排名', nameTextStyle:{ color:'#F53F3F'}, axisLine:{show:false}, axisLabel:{ color:'#909399'}, splitLine:{ show:false }, max:100 }
-    ],
-    series:[
-      { name:'应用数量', type:'line', data:appCount, smooth:true, lineStyle:{ color:'#165DFF', width:2 }, symbol:'circle', symbolSize:4, itemStyle:{ color:'#165DFF', borderWidth:2, borderColor:'#fff' }, areaStyle:{ color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(22,93,255,0.2)'},{offset:1,color:'rgba(22,93,255,0)'}]) } },
-      { name:'平均排名', type:'line', data:avgRank,  smooth:true, yAxisIndex:1, lineStyle:{ color:'#F53F3F', width:2 }, symbol:'circle', symbolSize:4, itemStyle:{ color:'#F53F3F', borderWidth:2, borderColor:'#fff' }, areaStyle:{ color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(245,63,63,0.2)'},{offset:1,color:'rgba(245,63,63,0)'}]) } }
-    ]
-  }
-  genreTrendChart.setOption(option)
-}
 
-function initGenreGrowthChart(){
-  if(!genreGrowthEl.value) return
-  genreGrowthChart = echarts.init(genreGrowthEl.value)
-  const categories = ['游戏','社交','购物','工具','教育','娱乐','新闻','健康']
-  const values = categories.map(()=> +(Math.random()*30-5).toFixed(1))
-  const colors = values.map(v => v>=0 ? '#00B42A' : '#F53F3F')
-  const option: echarts.EChartsOption = {
-    tooltip:{ trigger:'axis', backgroundColor:'rgba(255,255,255,0.9)', borderColor:'#EBEEF5', borderWidth:1, padding:10, textStyle:{color:'#303133'}, formatter:(p:any)=>{ const v=p[0].value; const trend = v>=0?'增长':'下降'; return `${p[0].name}<br/>环比${trend}: ${Math.abs(v)}%` } },
-    grid:{ left:'3%', right:'4%', bottom:'3%', containLabel:true },
-    xAxis:{ type:'category', data:categories, axisLine:{ lineStyle:{ color:'#E4E7ED'}}, axisLabel:{ color:'#909399'} },
-    yAxis:{ type:'value', axisLine:{show:false}, axisLabel:{ color:'#909399', formatter:'{value}%'}, splitLine:{ lineStyle:{ color:'#F2F3F5'} } },
-    series:[{ type:'bar', data:values, barWidth:'60%', itemStyle:{ color:(p:any)=> colors[p.dataIndex], borderRadius:[4,4,0,0] }, label:{ show:true, position:'top', color:(p:any)=> colors[p.dataIndex], formatter:(p:any)=> p.value>=0?`+${p.value}%`:`${p.value}%` } }]
-  }
-  genreGrowthChart.setOption(option)
-}
 
 function initFeatureImportanceChart(){
   if(!featureImportanceEl.value) return
-  featureImportanceChart = echarts.init(featureImportanceEl.value)
+  // 复用已存在实例，避免重复 init 警告
+  const existed = echarts.getInstanceByDom(featureImportanceEl.value)
+  if (existed) {
+    featureImportanceChart = existed
+  } else {
+    featureImportanceChart = echarts.init(featureImportanceEl.value)
+  }
   const features = ['游戏','社交','购物','工具','教育','娱乐','新闻','健康','免费','付费','iPhone','Android','CN','US','JP','KR']
   const importance = features.map(()=> +(Math.random()*0.6+0.2).toFixed(2))
   const option: echarts.EChartsOption = {
@@ -496,6 +498,7 @@ function initFeatureImportanceChart(){
     visualMap:{ min:0.2, max:0.8, calculable:true, orient:'horizontal', left:'center', bottom:0, textStyle:{ color:'#909399' }, inRange:{ color:['#E0F2FF','#165DFF'] } },
     series:[{ name:'特征重要性', type:'heatmap', data: features.map((_,i)=>[0,i,importance[i]]), label:{ show:true, color:'#303133', formatter:(p:any)=> p.data[2] }, itemStyle:{ borderRadius:4 } }]
   }
+  featureImportanceChart.clear()
   featureImportanceChart.setOption(option)
 }
 
@@ -504,7 +507,7 @@ async function refreshKpis(){
     const data = await getOverviewKpis({
       country: region.value,
       device: device.value,
-      brand_id: chartType.value === 'paid' ? 0 : chartType.value === 'free' ? 1 : 2,
+      brand_id: brandId.value,
       days: Number(timeRange.value)
     })
     newEntries.value = data.new_entries

@@ -83,3 +83,32 @@ export async function getVolatileTop10(params: {
   const { data } = await http.get('/api/v1/analytics/volatile-top10', { params })
   return data
 }
+
+export async function getGenreTrend(params: {
+  days:number; brand_id:number; country:string; device:string; genre:string
+}) {
+  const { data } = await http.get('/api/v1/analytics/genre-trend', { params })
+  return data
+}
+
+export async function getGenreGrowth(params: {
+  days: number;
+  brand_id: number;
+  country: string;
+  device: string;
+  genre: string;
+}) {
+  const { data } = await http.get('/api/v1/analytics/genre-growth', { params })
+  return data
+}
+
+export async function getGenres(params: {
+  days: number;
+  brand_id: number;
+  country: string;
+  device: string;
+}) {
+  const { data } = await http.get('/api/v1/analytics/genres', { params });
+  // 预期 { items: string[] }
+  return data?.items ?? [];
+}
