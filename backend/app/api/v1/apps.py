@@ -9,6 +9,7 @@ from sqlalchemy import select, func, and_, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import get_session
+from app.db.models.ranking import AppStoreRankingDaily
 from app.db.models.rating import AppRatings
 
 # try:
@@ -72,6 +73,7 @@ async def search_apps(
     country: Optional[str] = Query(None, description="区域，如 cn、us"),
     device: Optional[str] = Query(None, description="设备，如 iphone、ipad、android"),
     brand: Optional[str] = Query(None, description="榜单类型：free/paid/grossing，可选"),
+    genre: Optional[str] = Query(None, description="榜单分类（使用 rank_c->genre 过滤）"),
     window: Optional[int] = Query(None, ge=1, le=366, description="最近N天，和 date_from/date_to 互斥"),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
@@ -103,6 +105,19 @@ async def search_apps(
         where_clauses.append(AppRatings.device == device)
     if brand:
         where_clauses.append(AppRatings.brand == brand)
+    if genre:
+        # 兼容不同数据库方言
+        try:
+            dialect_name = session.bind.dialect.name  # 'postgresql', 'mysql', 'sqlite', etc.
+        except Exception:
+            dialect_name = None
+        rank_c_col = AppRatings.rank_c
+        where_clauses.append(rank_c_col.isnot(None))
+        if dialect_name == "postgresql":
+            where_clauses.append(rank_c_col["genre"].astext == genre)
+        else:
+            # MySQL / SQLite(JSON1)
+            where_clauses.append(func.json_extract(rank_c_col, "$.genre") == genre)
     if date_from and date_to:
         where_clauses.append(AppRatings.chart_date.between(date_from, date_to))
 

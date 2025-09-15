@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Set
 import random
+from datetime import date, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +14,12 @@ from app.db.models.rating import AppRatings  # 使用 AppRatings 表（app_ratin
 
 router = APIRouter(prefix="/api/v1", tags=["meta"])
 
-VALID_FIELDS: Set[str] = {"country", "device", "is_ad", "chart_date", "brand"}
+VALID_FIELDS: Set[str] = {"country", "device", "is_ad", "chart_date", "brand", "app_genre"}
 
 @router.get("/meta/options")
 async def get_meta_options(
-    fields: Optional[str] = Query(None, description="用逗号分隔的字段名: country,device,is_ad,chart_date,brand"),
+    fields: Optional[str] = Query(None, description="用逗号分隔的字段名: country,device,is_ad,chart_date,brand,app_genre"),
+    window: int = Query(30, ge=1, le=365, description="回看最近N天（默认30天）用于app_genre去重"),
     session: AsyncSession = Depends(get_session),
 ) -> Dict[str, Any]:
     """
@@ -30,6 +32,7 @@ async def get_meta_options(
       * is_ad: 固定返回 [0, 1]（即使库中只有单侧值，前端仍可优先展示“全部”）
       * chart_date: 返回 {"min": YYYY-MM-DD, "max": YYYY-MM-DD} 的日期范围（来自 AppRatings.update_time）
       * brand: 去重后的榜单类型列表（来自 AppRatings.brand；预期为 free/paid/grossing）
+      * app_genre: 返回最近N天内（基于 AppRatings.chart_date）在 rank_c->genre 中出现过的去重分类列表
     """
     wanted = set(f.strip().lower() for f in (fields.split(",") if fields else [])) & VALID_FIELDS
     if not wanted:
@@ -76,6 +79,44 @@ async def get_meta_options(
             "min": str(min_d) if min_d is not None else None,
             "max": str(max_d) if max_d is not None else None,
         }
+
+    if "app_genre" in wanted:
+        # 近 N 天范围
+        date_to = date.today()
+        date_from = date_to - timedelta(days=window - 1)
+
+        # 兼容不同数据库方言
+        try:
+            dialect_name = session.bind.dialect.name
+        except Exception:
+            dialect_name = None
+
+        rank_c_col = AppRatings.rank_c
+        if dialect_name == "postgresql":
+            genre_expr = rank_c_col["genre"].astext
+        else:
+            genre_expr = func.json_extract(rank_c_col, "$.genre")
+
+        stmt = (
+            select(func.distinct(genre_expr).label("g"))
+            .where(
+                AppRatings.chart_date.between(date_from, date_to),
+                rank_c_col.isnot(None),
+            )
+        )
+        rows = await session.execute(stmt)
+        genres: List[str] = []
+        for (g,) in rows.fetchall():
+            if g is None:
+                continue
+            val = str(g)
+            if val.startswith('"') and val.endswith('"'):
+                val = val[1:-1]
+            val = val.strip()
+            if val:
+                genres.append(val)
+
+        result["app_genre"] = sorted(set(genres))
 
     return result
 

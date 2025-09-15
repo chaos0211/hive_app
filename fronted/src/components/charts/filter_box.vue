@@ -222,6 +222,7 @@ async function doSearch(){
     if(countryModel.value) params.country = countryModel.value
     if(deviceModel.value) params.device = deviceModel.value
     if(chartTypeModel.value) params.brand = chartTypeModel.value
+    if (categoryModel.value && categoryModel.value !== '所有分类') params.genre = categoryModel.value
     const { data } = await http.get('/api/v1/apps/search', { params })
     results.value = Array.isArray(data?.items) ? data.items : []
   }catch(err){
@@ -248,12 +249,17 @@ async function loadOptions(){
     if (!devices.value.length) devices.value = ['iphone']
     if (!brands.value.length)  brands.value  = ['free', 'paid', 'grossing']
 
-    // genres：直接从 meta/options 读取
-    const r2 = await http.get('/api/v1/meta/options', { params: { fields: 'app_genre' } })
-    const g = r2.data?.app_genre
-    const list = Array.isArray(g) ? g.slice() : []
+    // genres：直接从 app_ratings 表的 rank_c 字段中获取
+    // const r2 = await http.get('/api/v1/meta/options', { params: { fields: 'app_genre' } })
+    // const g = r2.data?.app_genre
+    // const list = Array.isArray(g) ? g.slice() : []
+    // if (!list.includes('所有分类')) list.unshift('所有分类')
+    // genres.value = list
+    const r2 = await http.get('/api/v1/meta/options', { params: { fields: 'app_genre', window: dateRangeModel.value || 30 } })
+    const list = Array.isArray(r2.data?.app_genre) ? r2.data.app_genre.slice() : []
     if (!list.includes('所有分类')) list.unshift('所有分类')
     genres.value = list
+
     if (!categoryModel.value && genres.value.length) {
       categoryModel.value = genres.value[0]
       emit('update:category', categoryModel.value)

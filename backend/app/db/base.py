@@ -16,7 +16,7 @@ from sqlalchemy.orm import declarative_base
 
 # Use an async MySQL driver: aiomysql or asyncmy
 # If you don't have aiomysql installed: pip install aiomysql
-DATABASE_URL = "mysql+aiomysql://root:123456@127.0.0.1:33309/hive_app"
+# DATABASE_URL = "mysql+aiomysql://root:123456@127.0.0.1:33309/hive_app"
 
 # Create async engine
 engine = create_async_engine(
