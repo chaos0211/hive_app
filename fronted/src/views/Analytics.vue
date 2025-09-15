@@ -233,11 +233,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- 特征重要性可视化 -->
           <div class="lg:col-span-2">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="text-base font-medium">特征重要性热力图</h3>
-              <div class="text-sm text-info">对预测模型的影响权重</div>
-            </div>
-            <div ref="featureImportanceEl" class="chart-container"></div>
+            <FeatureImportanceHeatmap
+              :days="Number(timeRange)"
+              :brandId="brandId"
+              :country="region"
+              :device="device"
+            />
           </div>
           <!-- 数据导出与准备 -->
           <div class="card-gradient from-cardGradientStart to-cardGradientEnd rounded-xl p-5 border border-gray-100">
@@ -332,7 +333,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import * as echarts from 'echarts'
 import VolatilityTrendChart from '@/components/charts/VolatilityTrendChart.vue'
 import { getVolatilityTrend } from '@/api/analytics'
 import KpiCard from '@/components/common/KpiCard.vue'
@@ -341,6 +341,7 @@ import { getGenres } from '@/api/analytics'
 import TopAppsList from '@/components/charts/TopAppsList.vue'
 import GenreTrendChart from '@/components/charts/GenreTrendChart.vue'
 import GenreGrowthBar from '@/components/charts/GenreGrowthBar.vue'
+import FeatureImportanceHeatmap from '@/components/charts/FeatureImportanceHeatmap.vue'
 
 // —— 顶部筛选 ——
 const timeRange = ref('30')
@@ -368,12 +369,6 @@ const droppedEntriesText = computed(() => droppedEntries.value == null ? loading
 
 // —— 表格数据（示意） ——
 
-// —— 图表容器 ——
-const volatilityTrendEl = ref<HTMLDivElement|null>(null)
-const featureImportanceEl = ref<HTMLDivElement|null>(null)
-
-let volatilityTrendChart: echarts.ECharts | null = null
-let featureImportanceChart: echarts.ECharts | null = null
 
 
 async function fetchVolatility() {
@@ -437,70 +432,20 @@ watch([timeRange, chartType, region, device], () => {
 watch([timeRange, chartType, region, device, genre, view], async ()=>{
   refreshKpis()
   await fetchVolatility()
-  await nextTick()
-  initCharts()
 }, { immediate: true })
 
-onMounted(async () => {
-  await nextTick()
-  initCharts()
-  window.addEventListener('resize', handleResize)
+onMounted(() => {
+  // 子组件内部自行处理图表初始化与 resize
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-  destroyCharts()
+  // 无需手动销毁，本页不直接持有图表实例
 })
 
-function handleResize(){
-  volatilityTrendChart?.resize();
-  featureImportanceChart?.resize();
-}
+function handleResize(){ /* no-op */ }
+function destroyCharts(){ /* no-op */ }
+function initCharts(){ /* no-op */ }
 
-function destroyCharts(){
-  volatilityTrendChart?.dispose(); volatilityTrendChart=null
-  featureImportanceChart?.dispose(); featureImportanceChart=null
-}
-
-function initCharts(){
-  initFeatureImportanceChart()
-}
-
-function genLastNDates(n:number){
-  const dates:string[]=[]
-  const today=new Date()
-  for(let i=n-1;i>=0;i--){
-    const d=new Date(today); d.setDate(today.getDate()-i)
-    dates.push(`${d.getMonth()+1}/${d.getDate()}`)
-  }
-  return dates
-}
-
-
-
-
-function initFeatureImportanceChart(){
-  if(!featureImportanceEl.value) return
-  // 复用已存在实例，避免重复 init 警告
-  const existed = echarts.getInstanceByDom(featureImportanceEl.value)
-  if (existed) {
-    featureImportanceChart = existed
-  } else {
-    featureImportanceChart = echarts.init(featureImportanceEl.value)
-  }
-  const features = ['游戏','社交','购物','工具','教育','娱乐','新闻','健康','免费','付费','iPhone','Android','CN','US','JP','KR']
-  const importance = features.map(()=> +(Math.random()*0.6+0.2).toFixed(2))
-  const option: echarts.EChartsOption = {
-    tooltip:{ trigger:'item', backgroundColor:'rgba(255,255,255,0.9)', borderColor:'#EBEEF5', borderWidth:1, padding:10, textStyle:{color:'#303133'}, formatter:(p:any)=> `${p.name}<br/>重要性权重: ${p.value}` },
-    grid:{ left:'10%', right:'4%', bottom:'15%', containLabel:true },
-    xAxis:{ type:'category', data:['重要性权重'], axisLine:{show:false}, axisLabel:{show:false}, splitLine:{show:false} },
-    yAxis:{ type:'category', data:features, axisLine:{show:false}, axisLabel:{ color:'#909399' }, splitLine:{show:false} },
-    visualMap:{ min:0.2, max:0.8, calculable:true, orient:'horizontal', left:'center', bottom:0, textStyle:{ color:'#909399' }, inRange:{ color:['#E0F2FF','#165DFF'] } },
-    series:[{ name:'特征重要性', type:'heatmap', data: features.map((_,i)=>[0,i,importance[i]]), label:{ show:true, color:'#303133', formatter:(p:any)=> p.data[2] }, itemStyle:{ borderRadius:4 } }]
-  }
-  featureImportanceChart.clear()
-  featureImportanceChart.setOption(option)
-}
 
 async function refreshKpis(){
   try {

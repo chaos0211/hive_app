@@ -1,0 +1,1420 @@
+<html lang='zh-CN'>
+        <head >
+        <meta charset='utf-8'/>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'/>
+<title >手机应用榜单数据分析</title>
+<script src='https://res.gemcoder.com/js/reload.js'></script>
+<script src='https://cdn.tailwindcss.com'></script>
+<link href='https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css' rel='stylesheet'/>
+<script src='https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js'></script>
+<script >tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#6B7280',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        neutral: '#F2F3F5',
+                        'neutral-dark': '#4E5969',
+                        'card-bg': '#FFFFFF',
+                        'chart-bg': '#F7F8FA',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    spacing: {
+                        '128': '32rem',
+                    }
+                },
+            }
+        }</script>
+<style type='text/tailwindcss'>
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .text-shadow {
+                text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+        }
+    </style>
+    </head>
+<body class='bg-gray-50 font-inter text-gray-800 min-h-screen'>
+        <!-- 页面容器 -->
+<div class='container mx-auto px-4 py-6 max-w-7xl'>
+        <!-- 页面标题 -->
+<div class='mb-8'>
+        <h1 class='text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-gray-800 mb-2'>
+        应用榜单数据分析
+    </h1>
+<p class='text-gray-500'>
+        预测应用在榜单中的未来表现趋势与排名变化
+    </p>
+    </div>
+<!-- 筛选区 -->
+<div class='bg-white rounded-xl shadow-sm p-5 mb-8 transition-all duration-300 hover:shadow-md'>
+        <div class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-5'>
+        <!-- 日期范围 -->
+<div class='space-y-2'>
+        <label class='block text-sm font-medium text-gray-700'>
+        日期范围
+    </label>
+<div class='flex space-x-2'>
+        <button class='date-range-btn px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium transition-all hover:bg-primary/90' data-days='7'>
+        7天
+    </button>
+<button class='date-range-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium transition-all hover:bg-gray-200' data-days='30'>
+        30天
+    </button>
+<button class='date-range-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium transition-all hover:bg-gray-200' data-days='90'>
+        90天
+    </button>
+    </div>
+    </div>
+<!-- 国家 -->
+<div class='space-y-2'>
+        <label class='block text-sm font-medium text-gray-700'>
+        国家/地区
+    </label>
+<div class='relative'>
+        <select class='block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg appearance-none bg-white border' id='country-select'>
+        <option value>
+        加载中...
+    </option>
+    </select>
+<div class='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700'>
+        <i class='fas fa-chevron-down text-xs'>
+        </i>
+    </div>
+    </div>
+    </div>
+<!-- 设备 -->
+<div class='space-y-2'>
+        <label class='block text-sm font-medium text-gray-700'>
+        设备
+    </label>
+<div class='flex space-x-2'>
+        <button class='device-btn px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium transition-all hover:bg-primary/90' data-device='iphone'>
+        iPhone
+    </button>
+<button class='device-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium transition-all hover:bg-gray-200' data-device='ipad'>
+        iPad
+    </button>
+<button class='device-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium transition-all hover:bg-gray-200' data-device='android'>
+        Android
+    </button>
+    </div>
+    </div>
+<!-- 榜单类型 -->
+<div class='space-y-2'>
+        <label class='block text-sm font-medium text-gray-700'>
+        榜单类型
+    </label>
+<div class='flex space-x-2'>
+        <button class='chart-type-btn px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium transition-all hover:bg-primary/90' data-type='free'>
+        免费
+    </button>
+<button class='chart-type-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium transition-all hover:bg-gray-200' data-type='paid'>
+        付费
+    </button>
+<button class='chart-type-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium transition-all hover:bg-gray-200' data-type='grossing'>
+        畅销
+    </button>
+    </div>
+    </div>
+<!-- 榜单类型 -->
+<div class='space-y-2'>
+        <label class='block text-sm font-medium text-gray-700'>
+        榜单分类
+    </label>
+<div class='relative'>
+        <select class='block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg appearance-none bg-white border' id='category-select'>
+        <option value='all'>
+        所有分类
+    </option>
+<option value='games'>
+        游戏
+    </option>
+<option value='apps'>
+        应用
+    </option>
+<option value='social'>
+        社交
+    </option>
+<option value='entertainment'>
+        娱乐
+    </option>
+<option value='productivity'>
+        生产力
+    </option>
+<option value='education'>
+        教育
+    </option>
+<option value='finance'>
+        财务
+    </option>
+    </select>
+<div class='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700'>
+        <i class='fas fa-chevron-down text-xs'>
+        </i>
+    </div>
+    </div>
+    </div>
+    </div>
+<div class='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <!-- 应用搜索 -->
+<div class='space-y-2'>
+        <label class='block text-sm font-medium text-gray-700'>
+        应用搜索 (最多选择3个)
+    </label>
+<div class='flex'>
+        <div class='relative flex-grow'>
+        <input class='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm' id='app-search' placeholder='输入应用名称或ID' type='text'/>
+<div class='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+        <i class='fas fa-search text-gray-400'>
+        </i>
+    </div>
+    </div>
+<button class='px-4 py-2 bg-primary text-white font-medium rounded-r-lg hover:bg-primary/90 transition-colors' id='search-btn'>
+        <i class='fas fa-search mr-1'>
+        </i>
+搜索
+    </button>
+    </div>
+<div class='hidden absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-2px max-h-60 overflow-y-auto scrollbar-hide' id='search-results'>
+        </div>
+<!-- 搜索结果会动态插入这里 -->
+    </div>
+<!-- 应用搜索结束 -->
+<!-- 当前选择的应用 -->
+<!-- 已选应用 -->
+<div class='space-y-2'>
+        <!-- 已选应用标签容器 -->
+<!-- 当前选择的应用 -->
+<!-- 当前选择的应用 -->
+<!-- 当前选择的应用 -->
+<!-- 当前选择的应用 -->
+<!-- 当前选择的应用 -->
+<!-- 当前选择的应用 -->
+<!-- 当前选择 -->
+<label class='block text-sm font-medium text-gray-7００'>
+        已选应用 (
+<span id='selected-count'>
+        ０
+<span >
+        /3)
+    </span>
+    </span>
+    </label>
+<div class='flex flex-wrap gap-2' id='selected-apps'>
+        <!-- 已选应用标签会动态插入这里 -->
+    </div>
+    </div>
+    </div>
+<!-- 操作按钮 -->
+<!-- 操作按钮 -->
+<div class='flex justify-end mt-6'>
+        <button class='px－4 py-2 border border-gray－３００ rounded-lg text-gray－7００ bg-white text-sm font-medium mr-3 hover:bg-gray－5０ transition-colors' id='reset-btn'>
+        <i class='fas fa-redo mr－１'>
+        </i>
+重置
+    </button>
+<button , class='px-6 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary／90 transition-colors shadow-sm' id='analyze-btn'>
+        <i class='fas fa-chart-line mr－1'>
+        </i>
+开始预测分析
+<!-- 筛选区结束 -->
+<!-- 当前选择的应用 -->
+<!-- 核心预测结果区 -->
+<!-- 当前选择的应用 -->
+<!-- 核心预测结果区 -->
+<!-- 核心预测结果区 -->
+<div class='grid grid-cols-１ lg-grid-cols-3 gap-6 mb-８'>
+        <!-- 预测趋势图 -->
+<div class='lg-col-span-2 bg-white rounded-xl shadow-sm p-5 transition-all duration－300 hover:shadow-md'>
+        <div class='flex justify-between items-center mb-6'>
+        <h2 class='text-lg font-semibold text-gray-800'>
+        预测趋势图
+<span class='text-sm font-normal text-gray-50０ ml-2' id='trend-date-range'>
+        （未来７天）"
+    </span>
+    </h2>
+<div class='flex space-x-2'>
+        <!-- 预测趋势图工具栏 -->
+<!-- 预测趋势图工具栏 -->
+<button class='p-2 rounded hover:bg-gray-１００ text-gray－6００ transition-colors' id='download-trend'>
+        <!-- 预测趋势图工具栏 -->
+<!-- 预测趋势图工具栏 -->
+<i class='fas fa-download'>
+        </i>
+    </button>
+<button class='p-2 rounded hover:bg-gray-１００ text-gray－6００ transition-colors' id='fullscreen-trend'>
+        <!-- 预测趋势图工具栏 -->
+<!-- 预测趋势图工具栏 -->
+<!-- i class="fas fa-expand" -->
+    </button>
+<div class='w-full h-[400px] bg-gray-50 rounded-lg p-2' id='trend-chart-container'>
+        </div>
+    </div>
+<!-- 预测TopN榜单 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex justify-between items-center mb-6'>
+        <h2 class='text-lg font-semibold text-gray-800'>
+        预测Top10榜单
+    </h2>
+<div class='flex space-x-2'>
+        <button class='p-2 rounded hover:bg-gray-100 text-gray-600 transition-colors' id='download-topn'>
+        <i class='fas fa-download'>
+        </i>
+    </button>
+    </div>
+    </div>
+<div class='overflow-x-auto rounded-lg border border-gray-100'>
+        <table class='min-w-full divide-y divide-gray-200'>
+        <thead class='bg-gray-50'>
+        <tr >
+        <th scope='col' class='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg w-16'>
+        排名
+    </th>
+<th scope='col' class='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+        应用信息
+    </th>
+<th scope='col' class='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+        发行商
+    </th>
+<th scope='col' class='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg'>
+        排名变化
+    </th>
+    </tr>
+    </thead>
+<tbody class='bg-white divide-y divide-gray-200' id='topn-table-body'>
+        <!-- 表格行将动态生成 -->
+    </tbody>
+    </table>
+    </div>
+    </div>
+<!-- 模型评估区域 -->
+<!-- 模型评估区域 -->
+<div class='mb-8'>
+        <!-- 模型评估区域 -->
+<!-- i模型评估区域 -->
+<h2 class='text-xl font-semibold text-gray-800 mb-6'>
+        模型评估指标
+<!-- 评估指标卡片 -->
+<!-- 评估指标卡片 -->
+<div class='grid grid-cols-1 sm:grid-cols－2 lg:grid-cols-4 gap-５ mb-6'>
+        <!-- MAE卡片 -->
+<div class='bg-white rounded-xl shadow-sm p－５ transition-all duration-3００ hover-shadow-md card-hover'>
+        <!-- MAE卡片 -->
+<!-- MAE卡片 -->
+<div class='flex items-start'>
+        <!-- MAE卡片 -->
+<!-- MAE卡片 -->
+<!-- MAE卡片 -->
+<div class='flex-shrink－0 bg-blue－５０ p－３ rounded-lg'>
+        <!-- MAE卡片 -->
+<!-- MAE卡片 -->
+<i class='fas fa-crosshairs text-primary text-xl'>
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        平均绝对误差 (MAE)
+    </h3>
+<p class='mt-1 text-2xl font-semibold text-gray-9００' id='mae-value'>
+        3.78
+    </p>
+<p class='mt-1 text-xs text-success flex items-center'>
+        <i class='fas fa-arrow-down mr-1'>
+        </i>
+较上期降低12.3%
+<!-- MAE卡片 -->
+<!-- MAE卡片 -->
+    </p>
+<!-- RMSE卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-３００ hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div class='flex-shrink-0 bg-purple-5０ p-3 rounded-lg'>
+        <i class='fas fa-square-root-alt text-purple－６００ text-xl'>
+        </i>
+<!-- RMSE卡片 -->
+<!-- RMSE卡片 -->
+<!-- RMSE卡片 -->
+    </div>
+＞
+<div class-"ml-4">
+        <h３ class='text-sm font-medium text-gray-5００'>
+        均方根误差(RMSE)
+<p class='mt-１ text－２xl font-semibold text-gray－900' id='rmse-value'>
+        5．24
+    </p>
+<p class='mt-1 text-xs text-success flex items-center'>
+        <i class='fas fa-arrow-down mr-1'>
+        <!-- RMSE卡片 -->
+<!-- RMSE卡片 -->
+    </i>
+    </p>
+    </h３>
+    </div>
+<!-- 置信区间卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-３００ hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div bg-green-50 class-"flex-shrink-0 p-3 rounded-lg">
+        <i class-"fas fa-check-circle text-green-600 text-xl">
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        95%置信区间
+    </h3>
+<!-- 置信区间卡片 -->
+<!-- 置信区间卡片 -->
+<p class='mt-1 text－2xl font-semibold text-gray-900' id-"confidence-interval">
+        ±4．6排名"
+    </p>
+<!-- RMSE卡片 -->
+<!-- RMSE卡片 -->
+<p class='mt-1 text-xs text-gray-500'>
+        覆盖95%的预测结果
+    </p>
+    </div>
+    </div>
+    </div>
+<!-- 准确率卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div class='flex-shrink-0 bg-amber-50 p-3 rounded-lg'>
+        <i class='fas fa-chart-pie text-amber-600 text-xl'>
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        预测准确率
+    </h3>
+<p class='mt-1 text-2xl font-semibold text-gray-900' id='accuracy-value'>
+        89.3
+<span class='text-lg'>
+        %
+    </span>
+    </p>
+<p class='mt-1 text-xs text-success flex items-center'>
+        <i class='fas fa-arrow-up mr-1'>
+        </i>
+较上期提升2.1%
+    </p>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+<!-- 模型评估指标下的两个模块 - 改为左右排列 -->
+<div class='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+        <!-- 评估指标卡片 -->
+<div class='grid grid-cols-1 sm:grid-cols-2 gap-5'>
+        <!-- MAE卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div class='flex-shrink-0 bg-blue-50 p-3 rounded-lg'>
+        <i class='fas fa-crosshairs text-primary text-xl'>
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        平均绝对误差 (MAE)
+    </h3>
+<p class='mt-1 text-2xl font-semibold text-gray-900' id='mae-value'>
+        3.78
+    </p>
+<p class='mt-1 text-xs text-success flex items-center'>
+        <i class='fas fa-arrow-down mr-1'>
+        </i>
+较上期降低12.3%
+    </p>
+    </div>
+    </div>
+    </div>
+<!-- RMSE卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div class='flex-shrink-0 bg-purple-50 p-3 rounded-lg'>
+        <i class='fas fa-square-root-alt text-purple-600 text-xl'>
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        均方根误差 (RMSE)
+    </h3>
+<p class='mt-1 text-2xl font-semibold text-gray-900' id='rmse-value'>
+        5.24
+    </p>
+<p class='mt-1 text-xs text-success flex items-center'>
+        <i class='fas fa-arrow-down mr-1'>
+        </i>
+较上期降低8.7%
+    </p>
+    </div>
+    </div>
+    </div>
+<!-- 置信区间卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div class='flex-shrink-0 bg-green-50 p-3 rounded-lg'>
+        <i class='fas fa-check-circle text-green-600 text-xl'>
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        95%置信区间
+    </h3>
+<p class='mt-1 text-2xl font-semibold text-gray-900' id='confidence-interval'>
+        ±4.6排名
+    </p>
+<p class='mt-1 text-xs text-gray-500'>
+        覆盖95%的预测结果
+    </p>
+    </div>
+    </div>
+    </div>
+<!-- 准确率卡片 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex items-start'>
+        <div class='flex-shrink-0 bg-amber-50 p-3 rounded-lg'>
+        <i class='fas fa-chart-pie text-amber-600 text-xl'>
+        </i>
+    </div>
+<div class='ml-4'>
+        <h3 class='text-sm font-medium text-gray-500'>
+        预测准确率
+    </h3>
+<p class='mt-1 text-2xl font-semibold text-gray-900' id='accuracy-value'>
+        89.3
+<span class='text-lg'>
+        %
+    </span>
+    </p>
+<p class='mt-1 text-xs text-success flex items-center'>
+        <i class='fas fa-arrow-up mr-1'>
+        </i>
+较上期提升2.1%
+    </p>
+    </div>
+    </div>
+    </div>
+    </div>
+<!-- 历史预测准确率趋势 -->
+<div class='bg-white rounded-xl shadow-sm p-5 transition-all duration-300 hover:shadow-md card-hover'>
+        <div class='flex justify-between items-center mb-6'>
+        <h2 class='text-lg font-semibold text-gray-800'>
+        历史预测准确率趋势
+    </h2>
+<div class='flex space-x-2'>
+        <button class='p-2 rounded hover:bg-gray-100 text-gray-600 transition-colors' id='download-accuracy'>
+        <i class='fas fa-download'>
+        </i>
+    </button>
+    </div>
+    </div>
+<div class='w-full h-[300px] bg-gray-50 rounded-lg p-2' id='accuracy-chart-container'>
+        </div>
+    </div>
+    </div>
+    </div>
+    </h2>
+    </div>
+<!-- 加载中遮罩 -->
+<div class='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden' id='loading-overlay'>
+        <div class='bg-white rounded-lg p-8 max-w-md w-full mx-4'>
+        <div class='flex flex-col items-center'>
+        <div class='w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4'>
+        </div>
+<h3 class='text-lg font-medium text-gray-800 mb-2'>
+        数据处理中
+    </h3>
+<p class='text-gray-500 text-center' id='loading-message'>
+        正在分析数据并生成预测结果，请稍候...
+    </p>
+    </div>
+    </div>
+    </div>
+<!-- 应用搜索结果弹窗 -->
+<div class='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden' id='search-modal'>
+        <div class='bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col'>
+        <div class='p-4 border-b flex justify-between items-center'>
+        <h3 class='text-lg font-medium text-gray-800'>
+        搜索应用
+    </h3>
+<button class='text-gray-500 hover:text-gray-700' id='close-search-modal'>
+        <i class='fas fa-times'>
+        </i>
+    </button>
+    </div>
+<div class='p-4'>
+        <div class='relative'>
+        <input class='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm' id='modal-app-search' placeholder='输入应用名称或ID' type='text'/>
+<div class='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+        <i class='fas fa-search text-gray-400'>
+        </i>
+    </div>
+    </div>
+<div class='mt-2 text-sm text-gray-500'>
+        最多可选择3个应用进行对比
+    </div>
+    </div>
+<div class='flex-grow overflow-y-auto p-4'>
+        <div class='space-y-2' id='modal-search-results'>
+        <!-- 搜索结果会动态插入这里 -->
+    </div>
+    </div>
+<div class='p-4 border-t flex justify-end'>
+        <button class='px-6 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm' id='confirm-selection'>
+        确认选择
+    </button>
+    </div>
+    </div>
+    </div>
+<script >// 全局变量
+        const state = {
+            dateRange: 7,
+            country: '',
+            device: 'iphone',
+            chartType: 'free',
+            category: 'all',
+            selectedApps: [],
+            countryData: [],
+            trendChart: null,
+            accuracyChart: null,
+            isLoading: false
+        };
+
+        // 颜色映射表 - 用于多应用对比时的曲线颜色
+        const COLORS = [
+            '#165DFF', '#722ED1', '#F53F3F', '#FF7D00', '#0FC6C2',
+            '#86909C', '#00B42A', '#F7BA1E', '#8E44AD', '#3498DB'
+        ];
+
+        // 模拟国家数据
+        const mockCountries = [
+            { code: 'us', name: '美国' },
+            { code: 'cn', name: '中国' },
+            { code: 'jp', name: '日本' },
+            { code: 'de', name: '德国' },
+            { code: 'fr', name: '法国' },
+            { code: 'uk', name: '英国' },
+            { code: 'ca', name: '加拿大' },
+            { code: 'au', name: '澳大利亚' },
+            { code: 'kr', name: '韩国' },
+            { code: 'sg', name: '新加坡' }
+        ];
+
+        // 模拟应用数据
+        const mockApps = [
+            { id: '123456', name: 'TikTok', publisher: 'TikTok Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/6d3cd0fc3500c413f385b5e57dd33a25.png' },
+            { id: '1475863182', name: 'Instagram', publisher: 'Meta Platforms, Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/49acdead6076f91bae19dc6b9cf6c12f.png' },
+            { id: '389801252', name: 'Facebook', publisher: 'Meta Platforms, Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/a03d1a5028bfa0ca868e34aac6784ec8.png' },
+            { id: '544007664', name: 'YouTube', publisher: 'Google LLC', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/b4fcc50077b661700453f861ba2e804f.png' },
+            { id: '1142110895', name: 'Snapchat', publisher: 'Snap Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/541477b363244fc06af9c0bcaebc7694.png' },
+            { id: '328401282', name: 'WhatsApp', publisher: 'WhatsApp Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/77b7cbe572f5b840e350a33352a996ea.png' },
+            { id: '1451383635', name: 'Telegram', publisher: 'Telegram FZ-LLC', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/44932a182f094f791b065a8831297739.png' },
+            { id: '1280458064', name: 'Spotify', publisher: 'Spotify AB', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/14cef10de33d8e94815ea40f68390213.png' },
+            { id: '529479190', name: 'WeChat', publisher: 'Tencent Holdings Limited', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/f5132f61e5cdc164f83330da706fa84f.png' },
+            { id: '1444383602', name: 'Zoom', publisher: 'Zoom Video Communications, Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/bb7190d678f5488cd3746a34b0fed6cd.png' },
+            { id: '1055511498', name: 'Netflix', publisher: 'Netflix, Inc.', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/575afb27644d2e3b2268c91b34934dfa.png' },
+            { id: '1114214755', name: 'Disney+', publisher: 'Disney', icon: 'https://design.gemcoder.com/staticResource/echoAiSystemImages/269614931cbef3394562f0f634889255.png' }
+        ];
+
+        // 模拟预测数据 - 用于生成趋势图
+        function generateMockTrendData(appIds, days = 7) {
+            const data = [];
+            const today = new Date();
+
+            // 生成日期轴
+            const dates = [];
+            for (let i = 0; i < days; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i + 1);
+                dates.push(date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
+            }
+
+            // 为每个应用生成预测排名数据
+            appIds.forEach((appId, index) => {
+                const app = mockApps.find(a => a.id === appId) || { name: '未知应用', id: appId };
+                const baseRank = Math.floor(Math.random() * 50) + 1; // 基础排名 1-50
+                const ranks = [];
+
+                for (let i = 0; i < days; i++) {
+                    // 生成有轻微波动的排名数据
+                    const fluctuation = Math.floor(Math.random() * 10) - 5; // -5 到 4 的波动
+                    let rank = baseRank + fluctuation + (i * (Math.random() > 0.5 ? 1 : -1) * Math.random() * 3);
+                    rank = Math.max(1, Math.round(rank)); // 确保排名至少为1
+                    ranks.push(rank);
+                }
+
+                data.push({
+                    name: app.name,
+                    appId: app.id,
+                    type: 'line',
+                    data: ranks,
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    lineStyle: {
+                        width: 2,
+                        color: COLORS[index % COLORS.length]
+                    },
+                    itemStyle: {
+                        color: COLORS[index % COLORS.length]
+                    },
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    markPoint: {
+                        data: [
+                            { type: 'max', name: '最高排名' },
+                            { type: 'min', name: '最低排名' }
+                        ]
+                    }
+                });
+            });
+
+            return { dates, series: data };
+        }
+
+        // 模拟TopN数据
+        function generateMockTopNData(days = 7) {
+            const topN = [];
+            const shuffledApps = [...mockApps].sort(() => 0.5 - Math.random()); // 随机打乱应用顺序
+
+            for (let i = 0; i < 10; i++) {
+                const app = shuffledApps[i];
+                const rank = i + 1;
+                const prevRank = Math.max(1, rank + Math.floor(Math.random() * 10) - 5); // 上一期排名
+                const change = prevRank - rank;
+                const changePercent = Math.round(Math.abs(change) / prevRank * 100);
+
+                topN.push({
+                    rank,
+                    appName: app.name,
+                    publisher: app.publisher,
+                    appId: app.id,
+                    icon: app.icon,
+                    prevRank,
+                    change,
+                    changePercent
+                });
+            }
+
+            return topN;
+        }
+
+        // 模拟准确率趋势数据
+        function generateMockAccuracyData() {
+            const months = ['1月', '2月', '3月', '4月', '5月', '6月'];
+            const accuracy = months.map(() => 75 + Math.random() * 15); // 75% - 90% 之间的随机准确率
+
+            return {
+                months,
+                accuracy: accuracy.map(a => Math.round(a * 10) / 10)
+            };
+        }
+
+        // DOM元素加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化国家选择器
+            initCountrySelector();
+
+            // 初始化图表
+            initCharts();
+
+            // 绑定事件监听器
+            bindEventListeners();
+
+            // 加载初始数据
+            loadInitialData();
+        });
+
+        // 初始化国家选择器
+        function initCountrySelector() {
+            const select = document.getElementById('country-select');
+
+            // 模拟从数据库加载国家数据
+            state.countryData = mockCountries;
+
+            // 清空选择器
+            select.innerHTML = '';
+
+            // 添加默认选项
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '选择国家/地区';
+            select.appendChild(defaultOption);
+
+            // 添加国家选项
+            state.countryData.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.code;
+                option.textContent = country.name;
+                select.appendChild(option);
+            });
+
+            // 默认选择第一个国家
+            if (state.countryData.length > 0) {
+                state.country = state.countryData[0].code;
+                select.value = state.country;
+            }
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 初始化预测趋势图
+            const trendContainer = document.getElementById('trend-chart-container');
+            state.trendChart = echarts.init(trendContainer);
+
+            // 初始化准确率趋势图
+            const accuracyContainer = document.getElementById('accuracy-chart-container');
+            state.accuracyChart = echarts.init(accuracyContainer);
+
+            // 监听窗口大小变化，调整图表大小
+            window.addEventListener('resize', () => {
+                if (state.trendChart) state.trendChart.resize();
+                if (state.accuracyChart) state.accuracyChart.resize();
+            });
+
+            // 初始渲染图表
+            renderTrendChart();
+            renderAccuracyChart();
+        }
+
+        // 渲染预测趋势图
+        function renderTrendChart() {
+            if (!state.trendChart) return;
+
+            // 如果没有选择应用，显示提示信息
+            if (state.selectedApps.length === 0) {
+                state.trendChart.setOption({
+                    title: {
+                        text: '请选择应用进行分析',
+                        left: 'center',
+                        top: 'center',
+                        textStyle: {
+                            color: '#9CA3AF',
+                            fontSize: 16
+                        }
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'cross'
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: []
+                    },
+                    yAxis: {
+                        type: 'value',
+                        inverse: true, // 排名是倒序，1是最高
+                        min: 1,
+                        axisLabel: {
+                            formatter: '{value}'
+                        }
+                    },
+                    series: []
+                });
+                return;
+            }
+
+            // 生成模拟数据
+            const { dates, series } = generateMockTrendData(state.selectedApps, state.dateRange);
+
+            // 设置图表选项
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label: {
+                            backgroundColor: '#6a7985'
+                        }
+                    },
+                    formatter: function(params) {
+                        let result = `${params[0].name}<br/>`;
+                        params.forEach(item => {
+                            result += `<span style="display:inline-block;margin-right:5px;width:10px;height:10px;border-radius:50%;background-color:${item.color};"></span>`;
+                            result += `${item.seriesName}: 第${item.data}名<br/>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: series.map(s => s.name),
+                    top: 0,
+                    left: 'center',
+                    orient: 'horizontal',
+                    backgroundColor: 'transparent',
+                    textStyle: {
+                        fontSize: 12
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '10%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: dates,
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 30,
+                        fontSize: 12
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#E5E7EB'
+                        }
+                    },
+                    splitLine: {
+                        show: false
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    inverse: true, // 排名是倒序，1是最高
+                    min: 1,
+                    max: Math.max(...series.flatMap(s => s.data)) + 10,
+                    axisLabel: {
+                        formatter: '{value}'
+                    },
+                    axisLine: {
+                        show: false
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#F3F4F6'
+                        }
+                    }
+                },
+                series: series,
+                dataZoom: [
+                    {
+                        type: 'slider',
+                        show: true,
+                        xAxisIndex: 0,
+                        bottom: 0,
+                        start: 0,
+                        end: 100,
+                        height: 8,
+                        handleSize: '100%',
+                        backgroundColor: '#F3F4F6',
+                        fillerColor: '#CBD5E1',
+                        borderColor: 'transparent'
+                    }
+                ]
+            };
+
+            state.trendChart.setOption(option);
+        }
+
+        // 渲染TopN榜单
+        function renderTopNTable() {
+            const tableBody = document.getElementById('topn-table-body');
+            tableBody.innerHTML = '';
+
+            // 生成模拟数据
+            const topNData = generateMockTopNData(state.dateRange);
+
+            topNData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+
+                // 排名变化样式
+                let changeClass = 'text-gray-500';
+                let changeIcon = '';
+
+                if (item.change > 0) {
+                    changeClass = 'text-success';
+                    changeIcon = '<i class="fas fa-arrow-up mr-1"></i>';
+                } else if (item.change < 0) {
+                    changeClass = 'text-danger';
+                    changeIcon = '<i class="fas fa-arrow-down mr-1"></i>';
+                } else {
+                    changeIcon = '<i class="fas fa-minus mr-1"></i>';
+                }
+
+                row.innerHTML = `
+
+
+<td class="px-3 py-4 whitespace-nowrap">
+  <div class="flex items-center">
+    <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${item.rank <= 3 ? 'bg-primary text-white font-bold' : 'bg-gray-100 text-gray-600'}">
+      ${item.rank}
+    </div>
+  </div>
+</td>
+<td class="px-3 py-4 whitespace-nowrap">
+  <div class="flex items-center">
+    <div class="flex-shrink-0 h-10 w-10">
+      <img class="h-10 w-10 rounded object-cover" src="${item.icon}" alt="${item.appName}">
+      </div>
+      <div class="ml-3">
+        <div class="text-sm font-medium text-gray-900">${item.appName}</div>
+        </div>
+      </div>
+    </td>
+    <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+      ${item.publisher}
+    </td>
+    <td class="px-3 py-4 whitespace-nowrap">
+      <div class="text-sm ${changeClass} flex items-center">
+        ${changeIcon}${Math.abs(item.change)} (${item.changePercent}%)
+      </div>
+    </td>
+
+
+  `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 渲染准确率趋势图
+        function renderAccuracyChart() {
+            if (!state.accuracyChart) return;
+
+            // 生成模拟数据
+            const { months, accuracy } = generateMockAccuracyData();
+
+            // 设置图表选项
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: '{b}: {c}%'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#E5E7EB'
+                        }
+                    },
+                    splitLine: {
+                        show: false
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: 70,
+                    max: 95,
+                    axisLabel: {
+                        formatter: '{value}%'
+                    },
+                    axisLine: {
+                        show: false
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#F3F4F6'
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: '预测准确率',
+                        type: 'line',
+                        data: accuracy,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        lineStyle: {
+                            width: 3,
+                            color: '#165DFF'
+                        },
+                        itemStyle: {
+                            color: '#165DFF',
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(22, 93, 255, 0.3)' },
+                                { offset: 1, color: 'rgba(22, 93, 255, 0)' }
+                            ])
+                        },
+                        markLine: {
+                            data: [
+                                { type: 'average', name: '平均值', lineStyle: { color: '#FF7D00' } }
+                            ],
+                            label: {
+                                formatter: '平均值: {c}%'
+                            }
+                        }
+                    }
+                ]
+            };
+
+            state.accuracyChart.setOption(option);
+        }
+
+        // 绑定事件监听器
+        function bindEventListeners() {
+            // 日期范围选择
+            document.querySelectorAll('.date-range-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新按钮样式
+                    document.querySelectorAll('.date-range-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-700');
+                    });
+                    this.classList.remove('bg-gray-100', 'text-gray-700');
+                    this.classList.add('bg-primary', 'text-white');
+
+                    // 更新状态
+                    state.dateRange = parseInt(this.dataset.days);
+                    document.getElementById('trend-date-range').textContent = `（未来${state.dateRange}天）`;
+                });
+            });
+
+            // 设备选择
+            document.querySelectorAll('.device-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新按钮样式
+                    document.querySelectorAll('.device-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-700');
+                    });
+                    this.classList.remove('bg-gray-100', 'text-gray-700');
+                    this.classList.add('bg-primary', 'text-white');
+
+                    // 更新状态
+                    state.device = this.dataset.device;
+                });
+            });
+
+            // 榜单类型选择
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新按钮样式
+                    document.querySelectorAll('.chart-type-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'text-gray-700');
+                    });
+                    this.classList.remove('bg-gray-100', 'text-gray-700');
+                    this.classList.add('bg-primary', 'text-white');
+
+                    // 更新状态
+                    state.chartType = this.dataset.type;
+                });
+            });
+
+            // 国家选择变化
+            document.getElementById('country-select').addEventListener('change', function() {
+                state.country = this.value;
+            });
+
+            // 分类选择变化
+            document.getElementById('category-select').addEventListener('change', function() {
+                state.category = this.value;
+            });
+
+            // 应用搜索框点击 - 打开搜索弹窗
+            document.getElementById('app-search').addEventListener('click', function() {
+                document.getElementById('search-modal').classList.remove('hidden');
+                document.getElementById('modal-app-search').focus();
+            });
+
+            // 搜索按钮点击 - 打开搜索弹窗
+            document.getElementById('search-btn').addEventListener('click', function() {
+                document.getElementById('search-modal').classList.remove('hidden');
+                document.getElementById('modal-app-search').focus();
+            });
+
+            // 关闭搜索弹窗
+            document.getElementById('close-search-modal').addEventListener('click', function() {
+                document.getElementById('search-modal').classList.add('hidden');
+            });
+
+            // 模态框内搜索
+            document.getElementById('modal-app-search').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                searchApps(searchTerm);
+            });
+
+            // 确认选择应用
+            document.getElementById('confirm-selection').addEventListener('click', function() {
+                updateSelectedAppsDisplay();
+                document.getElementById('search-modal').classList.add('hidden');
+            });
+
+            // 分析按钮点击
+            document.getElementById('analyze-btn').addEventListener('click', function() {
+                if (state.selectedApps.length === 0) {
+                    alert('请至少选择一个应用进行分析');
+                    return;
+                }
+
+                showLoading('正在分析数据并生成预测结果...');
+
+                // 模拟分析过程
+                setTimeout(() => {
+                    renderTrendChart();
+                    renderTopNTable();
+                    hideLoading();
+                }, 1500);
+            });
+
+            // 重置按钮点击
+            document.getElementById('reset-btn').addEventListener('click', function() {
+                // 重置选择的应用
+                state.selectedApps = [];
+                updateSelectedAppsDisplay();
+
+                // 重置图表
+                renderTrendChart();
+                renderTopNTable();
+
+                // 重置筛选条件
+                document.querySelectorAll('.date-range-btn').forEach((btn, index) => {
+                    if (index === 0) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700');
+                        btn.classList.add('bg-primary', 'text-white');
+                    } else {
+                        btn.classList.remove('bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-100', 'text-gray-700');
+                    }
+                });
+
+                document.querySelectorAll('.device-btn').forEach((btn, index) => {
+                    if (index === 0) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700');
+                        btn.classList.add('bg-primary', 'text-white');
+                    } else {
+                        btn.classList.remove('bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-100', 'text-gray-700');
+                    }
+                });
+
+                document.querySelectorAll('.chart-type-btn').forEach((btn, index) => {
+                    if (index === 0) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700');
+                        btn.classList.add('bg-primary', 'text-white');
+                    } else {
+                        btn.classList.remove('bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-100', 'text-gray-700');
+                    }
+                });
+
+                document.getElementById('country-select').value = state.countryData.length > 0 ? state.countryData[0].code : '';
+                document.getElementById('category-select').value = 'all';
+                document.getElementById('app-search').value = '';
+
+                // 重置状态
+                state.dateRange = 7;
+                state.device = 'iphone';
+                state.chartType = 'free';
+                state.category = 'all';
+
+                document.getElementById('trend-date-range').textContent = `（未来7天）`;
+            });
+
+            // 点击模态框外部关闭
+            document.getElementById('search-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+        }
+
+        // 搜索应用
+        function searchApps(searchTerm) {
+            const resultsContainer = document.getElementById('modal-search-results');
+            resultsContainer.innerHTML = '';
+
+            if (!searchTerm) {
+                resultsContainer.innerHTML = '<div class="text-center py-8 text-gray-500">请输入应用名称或ID进行搜索</div>';
+                return;
+            }
+
+            // 模拟搜索 - 实际应用中应该是API调用
+            const results = mockApps.filter(app =>
+                app.name.toLowerCase().includes(searchTerm) ||
+                app.id.includes(searchTerm)
+            );
+
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center py-8 text-gray-500">未找到匹配的应用</div>';
+                return;
+            }
+
+            results.forEach(app => {
+                const isSelected = state.selectedApps.includes(app.id);
+
+                const resultItem = document.createElement('div');
+                resultItem.className = `flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'}`;
+                resultItem.innerHTML = `
+
+
+<div class="flex-shrink-0 h-10 w-10">
+  <img class="h-10 w-10 rounded object-cover" src="${app.icon}" alt="${app.name}">
+  </div>
+  <div class="ml-3 flex-grow">
+    <div class="text-sm font-medium text-gray-900">${app.name}</div>
+      <div class="text-xs text-gray-500">ID: ${app.id}</div>
+      </div>
+      <div class="flex-shrink-0">
+        <input type="checkbox" class="app-checkbox h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+          data-app-id="${app.id}" ${isSelected ? 'checked' : ''}>
+        </div>
+
+
+      `;
+
+                // 添加复选框事件监听
+                const checkbox = resultItem.querySelector('.app-checkbox');
+                checkbox.addEventListener('change', function() {
+                    const appId = this.dataset.appId;
+
+                    if (this.checked) {
+                        // 如果已选数量达到3个，阻止选择
+                        if (state.selectedApps.length >= 3) {
+                            this.checked = false;
+                            alert('最多只能选择3个应用进行对比');
+                            return;
+                        }
+
+                        state.selectedApps.push(appId);
+                        resultItem.classList.add('bg-blue-50', 'border', 'border-blue-200');
+                    } else {
+                        state.selectedApps = state.selectedApps.filter(id => id !== appId);
+                        resultItem.classList.remove('bg-blue-50', 'border', 'border-blue-200');
+                    }
+                });
+
+                resultsContainer.appendChild(resultItem);
+            });
+        }
+
+        // 更新已选应用显示
+        function updateSelectedAppsDisplay() {
+            const container = document.getElementById('selected-apps');
+            const countElement = document.getElementById('selected-count');
+
+            // 更新计数
+            countElement.textContent = state.selectedApps.length;
+
+            // 清空容器
+            container.innerHTML = '';
+
+            // 添加已选应用标签
+            state.selectedApps.forEach(appId => {
+                const app = mockApps.find(a => a.id === appId);
+                if (!app) return;
+
+                const tag = document.createElement('div');
+                tag.className = 'flex items-center bg-blue-50 text-primary text-xs px-3 py-1.5 rounded-full';
+                tag.innerHTML = `
+
+
+<img class="h-4 w-4 rounded-full mr-2" src="${app.icon}" alt="${app.name}">
+  <span class="truncate max-w-[100px]">${app.name}</span>
+    <button class="ml-1 text-primary/70 hover:text-primary" data-app-id="${appId}">
+      <i class="fas fa-times-circle">
+      </i>
+    </button>
+
+
+  `;
+
+                // 移除按钮事件
+                tag.querySelector('button').addEventListener('click', function() {
+                    const idToRemove = this.dataset.appId;
+                    state.selectedApps = state.selectedApps.filter(id => id !== idToRemove);
+                    updateSelectedAppsDisplay();
+                });
+
+                container.appendChild(tag);
+            });
+
+            // 如果没有选择应用，显示提示
+            if (state.selectedApps.length === 0) {
+                container.innerHTML = '<div class="text-xs text-gray-500 italic">暂无选择</div>';
+            }
+        }
+
+        // 显示加载中遮罩
+        function showLoading(message = '加载中...') {
+            state.isLoading = true;
+            const overlay = document.getElementById('loading-overlay');
+            const messageElement = document.getElementById('loading-message');
+
+            messageElement.textContent = message;
+            overlay.classList.remove('hidden');
+        }
+
+        // 隐藏加载中遮罩
+        function hideLoading() {
+            state.isLoading = false;
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.add('hidden');
+        }
+
+        // 加载初始数据
+        function loadInitialData() {
+            showLoading('初始化数据加载中...');
+
+            // 模拟数据加载延迟
+            setTimeout(() => {
+                // 初始渲染TopN表格
+                renderTopNTable();
+
+                // 初始显示已选应用区域
+                updateSelectedAppsDisplay();
+
+                hideLoading();
+            }, 1000);
+        }</script>
+    </div>
+    </div>
+    </div>
+    </button>
+    </div>
+    </div>
+    </div>
+    </body>
+    </html>

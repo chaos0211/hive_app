@@ -10,36 +10,32 @@ from sqlalchemy import and_, asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import get_session
-from app.db.models.ranking import AppStoreRankingDaily
+from app.db.models.rating import AppRatings
 
 router = APIRouter(prefix="/api/v1", tags=["rankings"])
 
 # ---- Configs ----
 # Whitelist of sortable columns on the model to avoid SQL injection via sort_by
 ALLOWED_SORT_COLUMNS = {
-    "id": AppStoreRankingDaily.id,
-    "chart_date": AppStoreRankingDaily.chart_date,
-    "brand_id": AppStoreRankingDaily.brand_id,
-    "country": AppStoreRankingDaily.country,
-    "device": AppStoreRankingDaily.device,
-    "genre": AppStoreRankingDaily.genre,
-    "app_genre": AppStoreRankingDaily.app_genre,
-    "index": AppStoreRankingDaily.index,
-    "ranking": AppStoreRankingDaily.ranking,
-    "change": AppStoreRankingDaily.change,
-    "is_ad": AppStoreRankingDaily.is_ad,
-    "app_id": AppStoreRankingDaily.app_id,
-    "app_name": AppStoreRankingDaily.app_name,
-    "publisher": AppStoreRankingDaily.publisher,
-    "price": AppStoreRankingDaily.price,
-    "file_size_mb": AppStoreRankingDaily.file_size_mb,
-    "continuous_first_days": AppStoreRankingDaily.continuous_first_days,
-    "source": AppStoreRankingDaily.source,
-    "crawled_at": AppStoreRankingDaily.crawled_at,
-    "updated_at": AppStoreRankingDaily.updated_at,
+    "id": AppRatings.id,
+    "chart_date": AppRatings.chart_date,
+    "update_time": AppRatings.update_time,
+    "last_release_time": AppRatings.last_release_time,
+    "country": AppRatings.country,
+    "device": AppRatings.device,
+    "genre": AppRatings.genre,
+    "index": AppRatings.index,
+    "app_id": AppRatings.app_id,
+    "app_name": AppRatings.app_name,
+    "publisher": AppRatings.publisher,
+    "keyword_cover": AppRatings.keyword_cover,
+    "keyword_cover_top3": AppRatings.keyword_cover_top3,
+    "rating": AppRatings.rating,
+    "rating_num": AppRatings.rating_num,
+    "is_ad": AppRatings.is_ad,
 }
 
-DEFAULT_SORT_BY = "ranking"
+DEFAULT_SORT_BY = "index"
 DEFAULT_SORT_DIR: Literal["asc", "desc"] = "asc"
 MAX_PAGE_SIZE = 200
 
@@ -74,23 +70,17 @@ def _apply_filters(
 ):
     conds = []
     if chart_date:
-        conds.append(AppStoreRankingDaily.chart_date == chart_date)
+        conds.append(AppRatings.chart_date == chart_date)
     if app_genre:
-        conds.append(AppStoreRankingDaily.app_genre.ilike(f"%{app_genre}%"))
+        conds.append(AppRatings.genre.ilike(f"%{app_genre}%"))
     if is_ad is not None:
-        conds.append(AppStoreRankingDaily.is_ad == _to_bool_from_int(is_ad))
-    if price_min is not None:
-        conds.append(AppStoreRankingDaily.price >= price_min)
-    if price_max is not None:
-        conds.append(AppStoreRankingDaily.price <= price_max)
-    if brand_id is not None:
-        conds.append(AppStoreRankingDaily.brand_id == brand_id)
+        conds.append(AppRatings.is_ad == _to_bool_from_int(is_ad))
     if country:
-        conds.append(AppStoreRankingDaily.country == country)
+        conds.append(AppRatings.country == country)
     if device:
-        conds.append(AppStoreRankingDaily.device == device)
+        conds.append(AppRatings.device == device)
     if genre:
-        conds.append(AppStoreRankingDaily.genre.ilike(f"%{genre}%"))
+        conds.append(AppRatings.genre.ilike(f"%{genre}%"))
     if conds:
         stmt = stmt.where(and_(*conds))
     return stmt
@@ -102,9 +92,9 @@ async def get_rankings(
     chart_date: Optional[date] = Query(None, description="榜单日期，YYYY-MM-DD"),
     app_genre: Optional[str] = Query(None, description="应用大类，模糊匹配"),
     is_ad: Optional[int] = Query(None, description="是否广告：0/1"),
-    price_min: Optional[float] = Query(None, ge=0),
-    price_max: Optional[float] = Query(None, ge=0),
-    brand_id: Optional[int] = Query(None, description="0=付费,1=免费,2=畅销"),
+    price_min: Optional[float] = Query(None, ge=0),  # 该参数被忽略
+    price_max: Optional[float] = Query(None, ge=0),  # 该参数被忽略
+    brand_id: Optional[int] = Query(None, description="0=付费,1=免费,2=畅销"),  # 该参数被忽略
     country: Optional[str] = None,
     device: Optional[str] = None,
     genre: Optional[str] = Query(None, description="榜单细分，模糊匹配"),
@@ -121,9 +111,10 @@ async def get_rankings(
     - 支持多条件组合筛选
     - 排序字段白名单 + 升/降序
     - 分页返回 {items, total, page, page_size}
+    注意：自本次调整起，数据来自 AppRatings，`rank_a`/`rank_b`/`rank_c` 为 JSON 字段；`brand_id` 与价格过滤在该接口中被忽略。
     """
     # Base
-    base_stmt = select(AppStoreRankingDaily)
+    base_stmt = select(AppRatings)
     base_stmt = _apply_filters(
         base_stmt,
         chart_date=chart_date,
@@ -143,7 +134,8 @@ async def get_rankings(
     total: int = int(total_result.scalar_one() or 0)
 
     # Sorting (whitelist)
-    sort_col = ALLOWED_SORT_COLUMNS.get(sort_by, ALLOWED_SORT_COLUMNS[DEFAULT_SORT_BY])
+    sort_key = sort_by if sort_by in ALLOWED_SORT_COLUMNS else DEFAULT_SORT_BY
+    sort_col = ALLOWED_SORT_COLUMNS[sort_key]
     order_clause = asc(sort_col) if sort_dir == "asc" else desc(sort_col)
 
     # Page slice
@@ -154,12 +146,13 @@ async def get_rankings(
     rows = result.scalars().all()
     items: List[Dict[str, Any]] = [_row_to_dict(r) for r in rows]
 
-    return {
+    payload = {
         "items": items,
         "total": total,
         "page": page,
         "page_size": page_size,
     }
+    return jsonable_encoder(payload)
 
 def _parse_app_ids(v: Optional[str], repeats: List[str]) -> List[str]:
     # 支持逗号分隔和重复参数

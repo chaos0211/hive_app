@@ -1,0 +1,168 @@
+--- a/rank_crawl.py
++++ b/rank_crawl.py
+@@ -1,7 +1,13 @@
+ import argparse
+ import json
+ import os
+ import time
+ import sys
+ import urllib.parse
+ import requests
+-from app.services.ranking_service import upsert_page
++from app.services.ranking_service import upsert_page
++try:
++    # 需要 backend/app/services/rating_service.py 中提供：
++    # def upsert_app_ratings(records: List[dict]) -> int
++    from app.services.rating_service import upsert_app_ratings
++except Exception:
++    upsert_app_ratings = None
+ import logging
+
+@@ -80,7 +86,7 @@
+     if analysis:
+         params["analysis"] = analysis
+     full_url = f"{url}?" + "&".join(f"{k}={v}" for k, v in params.items())
+-    print(f"[DEBUG] Fetching: {full_url}")
++    print(f"[DEBUG] Fetching: {full_url}  Country={country} Device={device}")
+     last_err = None
+     for attempt in range(retries):
+         try:
+@@ -121,7 +127,7 @@
+         "is_rank_index": "1",
+     }
+     full_url = f"{url}?" + "&".join(f"{k}={v}" for k, v in params.items())
+-    print(f"[DEBUG] Fetching (index): {full_url}")
++    print(f"[DEBUG] Fetching (index): {full_url}  Country={country} Device={device}")
+     last_err = None
+     for attempt in range(retries):
+         try:
+@@ -142,6 +148,53 @@
+ def ensure_dir(p: str):
+     os.makedirs(p, exist_ok=True)
+
++# ===== Helpers for app_ratings =====
++from datetime import datetime, date as _date
++from typing import Dict, Any, List
++
++def _parse_date_ymd(s: str) -> _date | None:
++    try:
++        return datetime.strptime(s, "%Y-%m-%d").date()
++    except Exception:
++        return None
++
++def _safe_int(v):
++    try:
++        if v is None or v == "":
++            return None
++        return int(str(v).replace(",", ""))
++    except Exception:
++        return None
++
++def normalize_rankinfo_to_app_ratings(date_str: str, brand_id: int, genre_id: int, country: str, device: str,
++                                       item: Dict[str, Any]) -> Dict[str, Any]:
++    """
++    将新接口 rankInfo 的一条记录转换为 AppRatings 模型可写入的字段 dict
++    """
++    app = item.get("appInfo", {}) or {}
++    rank_a = item.get("rank_a") or {}
++    rank_b = item.get("rank_b") or {}
++    rank_c = item.get("rank_c") or {}
++
++    # 类别：优先子类（rank_c），否则回退到 rank_b / rank_a
++    genre_name = rank_c.get("genre") or rank_b.get("genre") or rank_a.get("genre")
++
++    comment = item.get("comment") or {}
++    rating = comment.get("rating")
++    rating_num = comment.get("num")
++
++    rec = {
++        "app_id": str(item.get("app_id") or app.get("appId") or ""),
++        "app_name": app.get("appName"),
++        "publisher": app.get("publisher"),
++        "country": app.get("country") or country,
++        "device": device,
++        "chart_date": _parse_date_ymd(date_str),
++        "update_time": _parse_date_ymd(date_str),
++        "index": item.get("index"),
++        "genre": genre_name,
++        "keyword_cover": _safe_int(item.get("keywordCover")),
++        "keyword_cover_top3": _safe_int(item.get("keywordCoverTop3")),
++        "rank_a": json.dumps(rank_a, ensure_ascii=False) if rank_a else None,
++        "rank_b": json.dumps(rank_b, ensure_ascii=False) if rank_b else None,
++        "rank_c": json.dumps(rank_c, ensure_ascii=False) if rank_c else None,
++        "rating": rating,
++        "rating_num": rating_num,
++        "is_ad": 1 if item.get("is_ad") is True else 0 if item.get("is_ad") is False else None,
++        "icon_url": app.get("icon"),
++        "last_release_time": _parse_date_ymd(item.get("lastReleaseTime")) if item.get("lastReleaseTime") else None,
++        "raw_json": json.dumps(item, ensure_ascii=False)[:2000],
++    }
++    return rec
++
+ def main():
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--start", type=str, help="起始日期 YYYY-MM-DD（含）",
+@@ -153,12 +206,14 @@
+                         help="榜单类型 brand_id 列表：0付费/1免费/2畅销")
+     parser.add_argument("--api", choices=["indexPlus", "index"], default="index", help="选择使用的新/旧API：index(新)/indexPlus(旧)")
+     parser.add_argument("--brands_names", type=str, nargs="*", default=["free", "paid", "grossing"], help="当 --api=index 时使用的 brand 名称列表：free/paid/grossing")
+-    parser.add_argument("--max_pages", type=int, default=10, help="每天每分类每榜单最多抓多少页（每页20条）")
++    parser.add_argument("--max_pages", type=int, default=10, help="每天每分类每榜单最多抓多少页（每页20条）")
+     parser.add_argument("--out", type=str, default="qimai_out", help="输出目录")
+     parser.add_argument("--sleep", type=float, default=0.5, help="请求间隔（秒）")
+     parser.add_argument("--save-raw", action="store_true", help="保存原始响应 JSON")
+     parser.add_argument("--save-flat", action="store_true", help="保存扁平 JSONL 记录")
+     parser.add_argument("--cookie", type=str, default=None, help="直接传 Cookie 字符串（从浏览器复制）")
+     parser.add_argument("--cookie_file", type=str, default=None, help="包含一行 Cookie 字符串的文件路径")
+     parser.add_argument("--headers-file", type=str, default=None, help="仅包含 Cookie 与 User-Agent 的文件")
++    parser.add_argument("--country", type=str, default="cn", choices=["cn", "us"], help="国家：cn/us")
++    parser.add_argument("--device", type=str, default="iphone", choices=["iphone"], help="设备：iphone")
+     args = parser.parse_args()
+-    args.max_pages = min(10, max(1, args.max_pages))  # 平台最多5页=Top200
++    args.max_pages = min(5, max(1, args.max_pages))  # 平台最多5页=Top200
+
+     start = datetime.strptime(args.start, "%Y-%m-%d")
+     end = datetime.strptime(args.end, "%Y-%m-%d")
+@@ -210,7 +265,7 @@
+                     genre = args.genre
+                     for page in range(1, args.max_pages + 1):
+-                        data = fetch_rank_page(date_str, brand_id, genre, page, analysis=None)
++                        data = fetch_rank_page(date_str, brand_id, genre, page, country=args.country, device=args.device, analysis=None)
+                         total_pages += 1
+                         # —— 保存 & 处理 ——
+                         if args.save_raw and raw_root:
+@@ -259,7 +314,7 @@
+                     brand_id = BRAND_NAME_TO_ID.get(brand_name, None)
+                     if brand_id is None:
+                         logging.warning(f"未知 brand 名称: {brand_name}")
+                         continue
+                     genre = args.genre
+                     for page in range(1, args.max_pages + 1):
+-                        data = fetch_rank_index(date_str, brand_name, genre, page)
++                        data = fetch_rank_index(date_str, brand_name, genre, page, country=args.country, device=args.device)
+                         total_pages += 1
+                         # —— 保存 ——
+                         if args.save_raw and raw_root:
+@@ -293,10 +348,23 @@
+                                 }
+                                 f_flat.write(json.dumps(rec, ensure_ascii=False) + "\n")
+-                        # —— 入库：为了复用 service，直接把 rankInfo 作为 lst 传入 ——
+-                        upserted = upsert_page(date_str, brand_id, args.genre, lst)
+-                        total_items += upserted
+-                        total_ok += 1
+-                        time.sleep(args.sleep)
++                        # —— 入库到 app_ratings（优先），否则兜底写旧主表 ——
++                        records = [
++                            normalize_rankinfo_to_app_ratings(
++                                date_str, brand_id, args.genre, args.country, args.device, it
++                            )
++                            for it in lst
++                        ]
++                        if upsert_app_ratings:
++                            upserted = upsert_app_ratings(records)
++                        else:
++                            upserted = upsert_page(date_str, brand_id, args.genre, lst)
++
++                        total_items += upserted
++                        total_ok += 1
++                        time.sleep(args.sleep)

@@ -112,3 +112,9 @@ export async function getGenres(params: {
   // 预期 { items: string[] }
   return data?.items ?? [];
 }
+
+// 特征重要性热力图
+export async function getFeatureImportance(params: { days: number; brand_id: number; country: string; device: string }) {
+  const { data } = await http.get("/api/v1/analytics/feature-importance", { params })
+  return data
+}

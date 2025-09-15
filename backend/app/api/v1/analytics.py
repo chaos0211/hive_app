@@ -9,19 +9,6 @@ from app.db.models.ranking import AppStoreRankingDaily
 
 router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 
-@router.get("/kpis")
-def kpis():
-    return {
-        "collect_yesterday": 12845,
-        "partitions": 248,
-        "top_app": {"name":"手机应用市场","rating":4.8,"category":"工具"},
-        "top_category": {"name":"游戏","share":"32.5%","apps":128},
-        "predict_cover": 89.7,
-        "task_success": 96.2
-    }
-
-
-
 @router.get("/topn-trend")
 async def topn_trend(
     days: int = 7,
@@ -794,3 +781,214 @@ async def list_genres(
     rows = (await session.execute(stmt)).all()
     items = [g for g, _ in rows]
     return {"items": items}
+
+# ——— 特征重要性热力图数据（单列） ———
+from collections import defaultdict
+
+@router.get("/feature-importance")
+async def feature_importance(
+    days: int = 30,
+    brand_id: int = 1,
+    country: str = "cn",
+    device: str = "iphone",
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    特征重要性热力图数据（单列）：
+    - 目标变量：`index`（应用榜单名次，使用 index，**不使用 ranking**）。
+    - 统计窗口：最近 days 天（含最新日），按 brand_id/country/device 过滤；**不含类别筛选**。
+    - 特征维度：country/device/brand（各自 one-hot 二值特征）；以及窗口内出现过的每个 genre（one-hot 二值特征）。
+      例如：country=cn, device=iphone, brand=paid(0), brand=free(1), genre=<<g>>（每个 genre）。
+    - 重要性口径：每个二值特征（flag）按 {0,1} 分组，计算组间方差占比 R^2；若 raw R^2 为 0（或非常接近0），直接跳过不返回。
+    - 返回 features/scores/raw_scores 顺序一一对应，均为非零维度（四位小数）。
+    返回：
+      {
+        "features": ["country=cn","device=iphone","brand=paid(0)","brand=free(1)","genre=游戏",...],
+        "scores":   [0.41, 0.27, ...],     # 0~1 归一化后的相对重要性（按本口径计算）
+        "raw_scores": [0.28, 0.18, ...],   # 原始 R^2（组间方差占全局方差的占比）
+        "meta": { "n_samples": 1234, "latest_date": "YYYY-MM-DD", "days": 30 }
+      }
+    """
+    from datetime import timedelta
+    from collections import defaultdict
+
+    days = max(1, min(days, 365))
+
+    # 1) 最近一次 chart_date（按维度过滤）
+    latest_stmt = (
+        select(func.max(AppStoreRankingDaily.chart_date))
+        .where(
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+        )
+    )
+    latest_date = (await session.execute(latest_stmt)).scalar_one_or_none()
+    if not latest_date:
+        return {"features": [], "scores": [], "raw_scores": [], "meta": {"n_samples": 0, "latest_date": None, "days": days}}
+
+    start_date = latest_date - timedelta(days=days - 1)
+
+    # 2) 拉取窗口内所需字段，目标变量使用 index（忽略 ranking）
+    q = (
+        select(
+            AppStoreRankingDaily.index,          # 目标
+            AppStoreRankingDaily.app_genre,      # 维度：genre
+            AppStoreRankingDaily.brand_id,       # 维度：brand
+            AppStoreRankingDaily.country,        # 维度：country
+            AppStoreRankingDaily.device,         # 维度：device
+            AppStoreRankingDaily.is_ad,          # 保留以备后续扩展
+            AppStoreRankingDaily.price,          # 保留以备后续扩展
+        )
+        .where(
+            AppStoreRankingDaily.chart_date >= start_date,
+            AppStoreRankingDaily.chart_date <= latest_date,
+            AppStoreRankingDaily.brand_id == brand_id,
+            AppStoreRankingDaily.country == country,
+            AppStoreRankingDaily.device == device,
+            AppStoreRankingDaily.index.isnot(None),
+        )
+    )
+    rows = (await session.execute(q)).all()
+    if not rows:
+        return {"features": [], "scores": [], "raw_scores": [], "meta": {"n_samples": 0, "latest_date": latest_date.isoformat(), "days": days}}
+
+    # 3) 准备样本
+    y = []               # index list
+    genres = []
+    brands = []
+    countries = []
+    devices = []
+    # —— 价格衍生特征 ——
+    # 额外收集 is_free 和 price_bins
+    for idx, genre_val, brand_val, country_val, device_val, is_ad_val, price_val in rows:
+        try:
+            y_val = int(idx) if idx is not None else None
+        except Exception:
+            y_val = None
+        if y_val is None:
+            continue
+        y.append(y_val)
+        genres.append(genre_val or "未知")
+        brands.append(int(brand_val))
+        countries.append(country_val or '')
+        devices.append(device_val or '')
+        # —— 价格衍生特征 ——
+        # 转为 float；None/异常按 0 处理
+        try:
+            price_f = float(price_val) if price_val is not None else 0.0
+        except Exception:
+            price_f = 0.0
+        # 是否免费
+        # 注意：畅销榜/付费榜里 is_free 不是常量；免费榜可能是常量（会在后续 R^2 过滤掉）
+        # True->1, False->0
+        if 'is_free_list' not in locals():
+            is_free_list = []
+        is_free_list.append(1 if price_f == 0.0 else 0)
+
+        # 价格分箱（右闭区间）：(0,1], (1,5], (5,20], (20, +∞)
+        # 免费（==0）不落入这些箱子，仅由 is_free 覆盖
+        if 'price_bin_tags' not in locals():
+            price_bin_tags = []  # 保存箱标签顺序
+        if 'price_bin_list' not in locals():
+            price_bin_list = []  # 每个样本一个字符串标签
+        if price_f == 0.0:
+            price_bin = 'free'
+        elif 0.0 < price_f <= 1.0:
+            price_bin = '(0,1]'
+        elif price_f <= 5.0:
+            price_bin = '(1,5]'
+        elif price_f <= 20.0:
+            price_bin = '(5,20]'
+        else:
+            price_bin = '(20,∞)'
+        price_bin_list.append(price_bin)
+
+    n = len(y)
+    if n == 0:
+        return {"features": [], "scores": [], "raw_scores": [], "meta": {"n_samples": 0, "latest_date": latest_date.isoformat(), "days": days}}
+
+    # 4) 计算全局均值与方差
+    mu = sum(y) / n
+    var = sum((v - mu) ** 2 for v in y) / n
+    if var <= 1e-12:
+        return {
+            "features": [],
+            "scores": [],
+            "raw_scores": [],
+            "meta": {"n_samples": n, "latest_date": latest_date.isoformat(), "days": days},
+        }
+
+    # —— 构造候选二值维度特征 ——
+    feat_bins: dict[str, list[int]] = {}
+    # 固定维度（按当前数据值做 one-hot；常量会得到 0 R^2 并被过滤）
+    feat_bins["country=cn"]   = [1 if c == 'cn' else 0 for c in countries]
+    feat_bins["device=iphone"] = [1 if d == 'iphone' else 0 for d in devices]
+    feat_bins["brand=paid(0)"] = [1 if b == 0 else 0 for b in brands]
+    feat_bins["brand=free(1)"] = [1 if b == 1 else 0 for b in brands]
+    # 动态维度：针对窗口内出现过的所有类别，逐个构造 one-hot 维度
+    distinct_genres = sorted({g or '未知' for g in genres})
+    for g in distinct_genres:
+        feat_bins[f"genre={g}"] = [1 if (gg or '未知') == g else 0 for gg in genres]
+
+    # —— 价格相关二值特征 ——
+    # 1) is_free
+    if 'is_free_list' in locals():
+        feat_bins['is_free=1'] = list(is_free_list)
+    # 2) price bins（将每个出现过的价位段做成 one-hot 二值特征）
+    if 'price_bin_list' in locals():
+        distinct_bins = sorted(set(price_bin_list))
+        for tag in distinct_bins:
+            if tag == 'free':
+                continue  # 免费用 is_free=1 覆盖
+            feat_bins[f'price∈{tag}'] = [1 if b == tag else 0 for b in price_bin_list]
+
+    # R^2 计算（按二值特征分组）
+    def r2_binary(bin_vals: list[int]) -> float:
+        groups = defaultdict(list)
+        for xi, yi in zip(bin_vals, y):
+            groups[str(int(1 if xi else 0))].append(yi)
+        between = 0.0
+        for vals in groups.values():
+            if not vals:
+                continue
+            ng = len(vals)
+            mug = sum(vals) / ng
+            between += (ng / n) * (mug - mu) ** 2
+        return max(0.0, min(1.0, between / var))
+
+    # 计算并收集非零（按两位小数四舍五入后）维度
+    disp_names: list[str] = []
+    kept_raw: list[float] = []
+    for name, bin_vals in feat_bins.items():
+        r = r2_binary(bin_vals)
+        # 两位小数四舍五入
+        r_2 = round(r, 2)
+        if r_2 <= 0.0:
+            continue  # 0.00 不展示
+        # 展示名：genre=休闲 -> 休闲；其他维度名称保持原样
+        if name.startswith("genre="):
+            show_name = name.split("=", 1)[1]
+        else:
+            show_name = name
+        disp_names.append(show_name)
+        kept_raw.append(r)  # 归一化用未四舍五入的原始值
+
+    # 归一化和返回
+    if not kept_raw:
+        return {"features": [], "scores": [], "raw_scores": [], "meta": {"n_samples": n, "latest_date": latest_date.isoformat(), "days": days}}
+
+    s = sum(kept_raw)
+    if s > 0:
+        scores = [round(v / s, 2) for v in kept_raw]
+    else:
+        scores = [0.0 for _ in kept_raw]
+
+    raw_scores = [round(v, 2) for v in kept_raw]
+
+    return {
+        "features": disp_names,
+        "scores": scores,
+        "raw_scores": raw_scores,
+        "meta": {"n_samples": n, "latest_date": latest_date.isoformat(), "days": days}
+    }

@@ -10,20 +10,6 @@
           <input type="date" v-model="q.chart_date" />
         </label>
 
-        <label>
-          类型（brand_id）：
-          <select v-model="q.brand_id">
-            <option value="">全部</option>
-            <option :value="0">0 - 付费</option>
-            <option :value="1">1 - 免费</option>
-            <option :value="2">2 - 畅销</option>
-          </select>
-        </label>
-
-        <label>
-          应用大类（app_genre）：
-          <input type="text" v-model.trim="q.app_genre" placeholder="如: GAME / TOOLS ..." />
-        </label>
 
         <label>
           是否广告（is_ad）：
@@ -36,12 +22,6 @@
       </div>
 
       <div class="row">
-        <label>
-          价格区间（¥）：
-          <input class="price" type="number" step="0.01" v-model.number="q.price_min" placeholder="最低价" />
-          <span class="sep">—</span>
-          <input class="price" type="number" step="0.01" v-model.number="q.price_max" placeholder="最高价" />
-        </label>
 
         <label>
           国家（country）：
@@ -71,68 +51,70 @@
         <thead>
           <tr>
             <th @click="sort('chart_date')">榜单日期 {{ sortIcon('chart_date') }}</th>
-            <th @click="sort('brand_id')">类型 {{ sortIcon('brand_id') }}</th>
+            <th @click="sort('update_time')">数据时间 {{ sortIcon('update_time') }}</th>
+            <th @click="sort('last_release_time')">最后更新时间 {{ sortIcon('last_release_time') }}</th>
             <th @click="sort('country')">国家 {{ sortIcon('country') }}</th>
             <th @click="sort('device')">设备 {{ sortIcon('device') }}</th>
-            <th @click="sort('genre')">细分 {{ sortIcon('genre') }}</th>
-            <th @click="sort('app_genre')">大类 {{ sortIcon('app_genre') }}</th>
+            <th @click="sort('genre')">类别 {{ sortIcon('genre') }}</th>
 
             <th @click="sort('index')">序位 {{ sortIcon('index') }}</th>
-            <th @click="sort('ranking')">排名 {{ sortIcon('ranking') }}</th>
-            <th @click="sort('change')">变化 {{ sortIcon('change') }}</th>
-            <th @click="sort('is_ad')">广告 {{ sortIcon('is_ad') }}</th>
+            <th>总榜</th>
+            <th>游戏/应用</th>
+            <th>分类排名</th>
 
             <th @click="sort('app_id')">App ID {{ sortIcon('app_id') }}</th>
             <th @click="sort('app_name')">应用名 {{ sortIcon('app_name') }}</th>
-            <th>副标题</th>
             <th>图标</th>
             <th @click="sort('publisher')">发行方 {{ sortIcon('publisher') }}</th>
-            <th>发行方ID</th>
-            <th @click="sort('price')">价格 {{ sortIcon('price') }}</th>
-
-            <th @click="sort('file_size_mb')">体积(MB) {{ sortIcon('file_size_mb') }}</th>
-            <th @click="sort('continuous_first_days')">连续登顶天数 {{ sortIcon('continuous_first_days') }}</th>
-
-            <th @click="sort('source')">来源 {{ sortIcon('source') }}</th>
-            <th @click="sort('crawled_at')">抓取时间 {{ sortIcon('crawled_at') }}</th>
-            <th @click="sort('updated_at')">更新时间 {{ sortIcon('updated_at') }}</th>
+            <th @click="sort('rating')">评分 {{ sortIcon('rating') }}</th>
+            <th @click="sort('rating_num')">评分数 {{ sortIcon('rating_num') }}</th>
+            <th @click="sort('keyword_cover')">关键词指数 {{ sortIcon('keyword_cover') }}</th>
+            <th @click="sort('keyword_cover_top3')">Top3关键词 {{ sortIcon('keyword_cover_top3') }}</th>
+            <th @click="sort('is_ad')">广告 {{ sortIcon('is_ad') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows" :key="row.id">
+          <tr v-for="row in rows" :key="row.id || (row.app_id + '-' + (row.index ?? ''))">
             <td>{{ row.chart_date }}</td>
-            <td>{{ brandName(row.brand_id) }}</td>
+            <td class="muted">{{ fmtDate(row.update_time) }}</td>
+            <td class="muted">{{ fmtDate(row.last_release_time) }}</td>
             <td>{{ row.country }}</td>
             <td>{{ row.device }}</td>
             <td>{{ row.genre }}</td>
-            <td>{{ row.app_genre }}</td>
 
             <td class="num">{{ row.index }}</td>
-            <td class="num">{{ row.ranking }}</td>
-            <td>{{ row.change }}</td>
             <td>
-              <span :class="['tag', row.is_ad ? 'on' : 'off']">{{ row.is_ad ? '有' : '无' }}</span>
+              <template v-if="row._rank_a">
+                <span class="num">#{{ row._rank_a.ranking ?? '—' }}</span>
+              </template>
+            </td>
+            <td>
+              <template v-if="row._rank_b">
+                <span class="num">#{{ row._rank_b.ranking ?? '—' }}</span>
+              </template>
+            </td>
+            <td>
+              <template v-if="row._rank_c">
+                <span class="num">#{{ row._rank_c.ranking ?? '—' }}</span>
+              </template>
             </td>
 
             <td class="mono">{{ row.app_id }}</td>
             <td>{{ row.app_name }}</td>
-            <td class="muted">{{ row.subtitle }}</td>
             <td>
-              <img v-if="row.icon_url" :src="row.icon_url" alt="" class="icon"/>
+              <img v-if="row.icon_url" :src="row.icon_url" alt="" class="icon" loading="lazy" width="28" height="28"/>
             </td>
             <td>{{ row.publisher }}</td>
-            <td class="mono">{{ row.publisher_id }}</td>
-            <td class="num">{{ fmtPrice(row.price) }}</td>
-
-            <td class="num">{{ fmtNum(row.file_size_mb) }}</td>
-            <td class="num">{{ row.continuous_first_days ?? '' }}</td>
-
-            <td class="muted">{{ row.source }}</td>
-            <td class="muted">{{ fmtTime(row.crawled_at) }}</td>
-            <td class="muted">{{ fmtTime(row.updated_at) }}</td>
+            <td class="num">{{ fmtScore(row.rating) }}</td>
+            <td class="num">{{ fmtNum(row.rating_num) }}</td>
+            <td class="num">{{ fmtNum(row.keyword_cover) }}</td>
+            <td class="num">{{ fmtNum(row.keyword_cover_top3) }}</td>
+            <td>
+              <span :class="['tag', row.is_ad ? 'on' : 'off']">{{ row.is_ad ? '有' : '无' }}</span>
+            </td>
           </tr>
           <tr v-if="!loading && rows.length === 0">
-            <td colspan="22" class="empty">暂无数据</td>
+            <td colspan="19" class="empty">暂无数据</td>
           </tr>
         </tbody>
       </table>
@@ -169,16 +151,12 @@ export default {
     return {
       q: {
         chart_date: '',
-        app_genre: '',
         is_ad: '',
-        price_min: '',
-        price_max: '',
-        brand_id: '',
         country: '',
         device: '',
         genre: '',
       },
-      sortBy: 'ranking',
+      sortBy: 'index',
       sortDir: 'asc', // asc | desc
       page: 1,
       pageSize: 20,
@@ -202,8 +180,8 @@ export default {
       await this.load()
     },
     onReset() {
-      this.q = { chart_date:'', app_genre:'', is_ad:'', price_min:'', price_max:'', brand_id:'', country:'', device:'', genre:'' }
-      this.sortBy = 'ranking'
+      this.q = { chart_date:'', is_ad:'', country:'', device:'', genre:'' }
+      this.sortBy = 'index'
       this.sortDir = 'asc'
       this.page = 1
       this.pageSize = 20
@@ -222,14 +200,25 @@ export default {
       if (this.sortBy !== field) return '↕'
       return this.sortDir === 'asc' ? '↑' : '↓'
     },
-    brandName(v) {
-      return v === 0 ? '付费' : v === 1 ? '免费' : v === 2 ? '畅销' : v
+    // brandName and fmtPrice removed
+    fmtScore(s) {
+      if (s === null || s === undefined || s === '') return ''
+      const v = Number(s)
+      if (isNaN(v)) return s
+      return v.toFixed(2)
     },
-    fmtPrice(p) {
-      if (p === null || p === undefined || p === '') return ''
-      const n = Number(p)
-      if (isNaN(n)) return String(p)
-      return n.toFixed(2)
+    fmtDate(d) {
+      if (!d) return ''
+      const s = String(d)
+      return s.length > 10 ? s.slice(0,10) : s
+    },
+    rank(val) {
+      if (!val) return null
+      if (typeof val === 'string') {
+        try { return JSON.parse(val) } catch(e) { return null }
+      }
+      if (typeof val === 'object') return val
+      return null
     },
     fmtNum(n) {
       if (n === null || n === undefined || n === '') return ''
@@ -244,14 +233,30 @@ export default {
       this.page = p
       await this.load()
     },
+    _parseJSON(val) {
+      if (!val) return null
+      if (typeof val === 'object') return val
+      if (typeof val === 'string') {
+        try { return JSON.parse(val) } catch (e) { return null }
+      }
+      return null
+    },
+    _prepareRow(row) {
+      // Pre-parse JSON fields once to avoid parsing on every render
+      row._rank_a = this._parseJSON(row.rank_a)
+      row._rank_b = this._parseJSON(row.rank_b)
+      row._rank_c = this._parseJSON(row.rank_c)
+      return row
+    },
     async load() {
+      // request id guard to ignore stale responses
+      this._rid = (this._rid || 0) + 1
+      const rid = this._rid
       this.loading = true
       try {
         const params = {
           ...this.q,
           is_ad: this.q.is_ad === '' ? '' : (this.q.is_ad ? 1 : 0),
-          price_min: this.q.price_min || '',
-          price_max: this.q.price_max || '',
           sort_by: this.sortBy,
           sort_dir: this.sortDir,
           page: this.page,
@@ -261,15 +266,17 @@ export default {
           Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
         )
         const res = await fetchRankings(cleaned)
-        // 期望后端返回 { items:[], total:123 }
-        this.rows = res.items || []
+        if (rid !== this._rid) return // ignore out-of-order response
+        const items = Array.isArray(res.items) ? res.items : []
+        this.rows = items.map(this._prepareRow)
         this.total = Number(res.total || 0)
       } catch (e) {
+        if (rid !== this._rid) return
         console.error(e)
         this.rows = []
         this.total = 0
       } finally {
-        this.loading = false
+        if (rid === this._rid) this.loading = false
       }
     }
   }
@@ -303,4 +310,9 @@ td.muted { color: #888; }
 .pager button { padding: 6px 10px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; }
 .pager button:disabled { opacity: .5; cursor: not-allowed; }
 .pager .gap { flex: 1; }
+ .tag { display:inline-block; padding:2px 6px; border-radius:4px; font-size:12px; }
+ .tag.on { background:#e6fffb; color:#08979c; }
+ .tag.off { background:#f6ffed; color:#237804; }
+
+tbody tr { content-visibility: auto; contain-intrinsic-size: 40px; }
 </style>

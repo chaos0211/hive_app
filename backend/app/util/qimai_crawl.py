@@ -137,16 +137,16 @@ def main():
     parser.add_argument("--genre", type=int, default=36, help="分类 genre ID（默认 36）")
     parser.add_argument("--brands", type=int, nargs="*", default=[0, 1, 2],
                         help="榜单类型 brand_id 列表：0付费/1免费/2畅销")
-    parser.add_argument("--max_pages", type=int, default=5, help="每天每分类每榜单最多抓多少页（每页20条）")
+    parser.add_argument("--max_pages", type=int, default=10, help="每天每分类每榜单最多抓多少页（每页20条）")
     parser.add_argument("--out", type=str, default="qimai_out", help="输出目录")
-    parser.add_argument("--sleep", type=float, default=0.8, help="请求间隔（秒）")
+    parser.add_argument("--sleep", type=float, default=0.5, help="请求间隔（秒）")
     parser.add_argument("--save-raw", action="store_true", help="保存原始响应 JSON")
     parser.add_argument("--save-flat", action="store_true", help="保存扁平 JSONL 记录")
     parser.add_argument("--cookie", type=str, default=None, help="直接传 Cookie 字符串（从浏览器复制）")
     parser.add_argument("--cookie_file", type=str, default=None, help="包含一行 Cookie 字符串的文件路径")
     parser.add_argument("--headers-file", type=str, default=None, help="仅包含 Cookie 与 User-Agent 的文件")
     args = parser.parse_args()
-    args.max_pages = min(5, max(1, args.max_pages))  # 平台最多5页=Top200
+    args.max_pages = min(10, max(1, args.max_pages))  # 平台最多5页=Top200
 
     start = datetime.strptime(args.start, "%Y-%m-%d")
     end = datetime.strptime(args.end, "%Y-%m-%d")

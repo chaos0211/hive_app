@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy import select, func, desc, and_
 from app.db.base import async_session  # 你已切到 async 版本
 from app.db.models.ranking import AppStoreRankingDaily
-from app.db.models.rating import AppRatingsDaily     # 新建
+# from app.db.models.rating import AppRatingsDaily     # 新建
 from app.db.models.monetization import AppMonetizationDaily  # 新建
 from datetime import date, timedelta
 
