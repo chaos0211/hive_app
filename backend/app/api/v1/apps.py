@@ -9,7 +9,7 @@ from sqlalchemy import select, func, and_, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import get_session
-from app.db.models.ranking import AppStoreRankingDaily
+from app.db.models.rating import AppRatings
 
 # try:
 #     from app.db.models.app import AppInfo  # 可选：应用元数据(如不存在则跳过)
@@ -46,26 +46,32 @@ def _row_to_obj(row) -> Dict[str, Optional[str]]:
         try:
             app_id = row.app_id
             app_name = getattr(row, "app_name", None)
+            icon_url = getattr(row, "icon_url", None)
+            publisher = getattr(row, "publisher", None)
         except AttributeError:
             app_id = row[0] if isinstance(row, (list, tuple)) and row else None
             app_name = row[1] if isinstance(row, (list, tuple)) and len(row) > 1 else None
+            icon_url = row[2] if isinstance(row, (list, tuple)) and len(row) > 2 else None
+            publisher = row[3] if isinstance(row, (list, tuple)) and len(row) > 3 else None
     else:
         app_id = m.get("app_id")
         app_name = m.get("app_name")
+        icon_url = m.get("icon_url")
+        publisher = m.get("publisher")
     return {
         "app_id": app_id,
         "app_name": app_name,
-        # 这些字段当前表可能没有：前端按“无”处理
-        "icon_url": None,
-        "publisher": None,
+        "icon_url": icon_url,
+        "publisher": publisher,
     }
 
 @router.get("/apps/search")
 async def search_apps(
     q: str = Query(..., min_length=1, description="应用名(模糊) 或 app_id(精确)"),
-    limit: int = Query(20, ge=1, le=50),  # default 20, client-controllable
+    limit: int = Query(20, ge=1, le=50),  # 默认 20，前端可控；前端可用 5 和 10 的两档
     country: Optional[str] = Query(None, description="区域，如 cn、us"),
     device: Optional[str] = Query(None, description="设备，如 iphone、ipad、android"),
+    brand: Optional[str] = Query(None, description="榜单类型：free/paid/grossing，可选"),
     window: Optional[int] = Query(None, ge=1, le=366, description="最近N天，和 date_from/date_to 互斥"),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
@@ -75,7 +81,8 @@ async def search_apps(
     搜索应用：
     - app_id：去空格后精确匹配
     - app_name：模糊匹配（LIKE %q%）
-    返回去重的 app 列表（按 app_id 去重），优先精确 app_id，之后用名称模糊补足到 limit。
+    在筛选范围内（国家/设备/品牌/时间）返回按最近日期排序的去重 app 列表（按 app_id 去重）。
+    若命中不足，再用无筛选的名称模糊补足。
     """
     q_raw = q or ""
     q_trim = q_raw.strip()
@@ -91,19 +98,21 @@ async def search_apps(
 
     where_clauses = []
     if country:
-        where_clauses.append(AppStoreRankingDaily.country == country)
+        where_clauses.append(AppRatings.country == country)
     if device:
-        where_clauses.append(AppStoreRankingDaily.device == device)
+        where_clauses.append(AppRatings.device == device)
+    if brand:
+        where_clauses.append(AppRatings.brand == brand)
     if date_from and date_to:
-        where_clauses.append(AppStoreRankingDaily.chart_date.between(date_from, date_to))
+        where_clauses.append(AppRatings.chart_date.between(date_from, date_to))
 
     # 子查询：在筛选范围内，找到每个 app 的最近日期，用于去重与排序
     base_filtered = select(
-        AppStoreRankingDaily.app_id,
-        func.max(AppStoreRankingDaily.chart_date).label("max_d")
+        AppRatings.app_id,
+        func.max(AppRatings.chart_date).label("max_d")
     ).where(
         *where_clauses
-    ).group_by(AppStoreRankingDaily.app_id).subquery()
+    ).group_by(AppRatings.app_id).subquery()
 
     items: List[Dict[str, Optional[str]]] = []
     seen = set()
@@ -111,9 +120,9 @@ async def search_apps(
     # 1) app_id 精确命中（带筛选约束：必须在当前筛选范围内存在记录）
     if q_trim:
         exact_q = (
-            select(AppStoreRankingDaily.app_id, AppStoreRankingDaily.app_name)
-            .join(base_filtered, AppStoreRankingDaily.app_id == base_filtered.c.app_id)
-            .where(AppStoreRankingDaily.app_id == q_trim)
+            select(AppRatings.app_id, AppRatings.app_name, AppRatings.icon_url, AppRatings.publisher)
+            .join(base_filtered, AppRatings.app_id == base_filtered.c.app_id)
+            .where(AppRatings.app_id == q_trim)
             .order_by(base_filtered.c.max_d.desc())
             .limit(5)
         )
@@ -129,11 +138,11 @@ async def search_apps(
 
     # 2) 名称模糊匹配（仍需存在于筛选范围内）
     like_q = (
-        select(AppStoreRankingDaily.app_id, AppStoreRankingDaily.app_name)
-        .join(base_filtered, AppStoreRankingDaily.app_id == base_filtered.c.app_id)
-        .where(AppStoreRankingDaily.app_name.ilike(f"%{q_trim}%"))
-        .group_by(AppStoreRankingDaily.app_id, AppStoreRankingDaily.app_name)
-        .order_by(base_filtered.c.max_d.desc(), AppStoreRankingDaily.app_name.asc())
+        select(AppRatings.app_id, AppRatings.app_name, AppRatings.icon_url, AppRatings.publisher)
+        .join(base_filtered, AppRatings.app_id == base_filtered.c.app_id)
+        .where(AppRatings.app_name.ilike(f"%{q_trim}%"))
+        .group_by(AppRatings.app_id, AppRatings.app_name, AppRatings.icon_url, AppRatings.publisher)
+        .order_by(base_filtered.c.max_d.desc(), AppRatings.app_name.asc())
         .limit(max(limit * 3, 50))
     )
     res2 = await session.execute(like_q)
@@ -146,13 +155,13 @@ async def search_apps(
             if len(items) >= limit:
                 break
 
-    # --- Fallback：若加了筛选后命中数量不足，则放宽条件（不带国家/设备/日期过滤）补足到 limit ---
-    if len(items) < limit:
+    # --- Fallback（仅当未指定任何筛选条件时才放宽）---
+    if len(items) < limit and not where_clauses:
         unfiltered_like_q = (
-            select(AppStoreRankingDaily.app_id, AppStoreRankingDaily.app_name)
-            .group_by(AppStoreRankingDaily.app_id, AppStoreRankingDaily.app_name)
-            .where(AppStoreRankingDaily.app_name.ilike(f"%{q_trim}%"))
-            .order_by(AppStoreRankingDaily.app_name.asc())
+            select(AppRatings.app_id, AppRatings.app_name, AppRatings.icon_url, AppRatings.publisher)
+            .where(AppRatings.app_name.ilike(f"%{q_trim}%"))
+            .group_by(AppRatings.app_id, AppRatings.app_name, AppRatings.icon_url, AppRatings.publisher)
+            .order_by(AppRatings.app_name.asc())
             .limit(limit * 3)
         )
         res3 = await session.execute(unfiltered_like_q)

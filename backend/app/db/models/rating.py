@@ -31,7 +31,9 @@ class AppRatings(Base):
     app_name: Mapped[str] = mapped_column(String(255), nullable=True, comment="应用名称")
     publisher: Mapped[str] = mapped_column(String(255), nullable=True, comment="发行者")
     country: Mapped[str] = mapped_column(String(8), nullable=False, comment="国家，如cn、us")
+    brand: Mapped[str] = mapped_column(String(32), nullable=False, comment="榜单类型，如free、paid、grossing")
     device: Mapped[str] = mapped_column(String(16), nullable=False, comment="设备，如iphone")
+
     chart_date: Mapped[Date] = mapped_column(Date, nullable=False, comment="榜单日期")
     last_release_time: Mapped[Date] = mapped_column(Date, nullable=True, comment="最后发布时间，如2025-09-12")
     update_time: Mapped[Date] = mapped_column(Date, nullable=False, comment="数据更新时间(爬取时间)，如2025-09-12")
@@ -49,5 +51,5 @@ class AppRatings(Base):
     raw_json: Mapped[str] = mapped_column(String(2000), nullable=True, comment="原始 JSON 数据")
 
     __table_args__ = (
-        UniqueConstraint('chart_date', 'country', 'device', 'app_id', name='uq_ratings_dim'),
+        UniqueConstraint('chart_date', 'country', 'device', 'brand', 'app_id', name='uq_ratings_dim'),
     )

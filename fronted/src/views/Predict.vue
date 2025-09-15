@@ -10,171 +10,15 @@
         <p class="text-gray-500">预测应用在榜单中的未来表现趋势与排名变化</p>
       </div>
 
-      <!-- 筛选区 -->
-      <div class="bg-white rounded-xl shadow-sm p-5 mb-8 transition-all duration-300 hover:shadow-md">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
-          <!-- 日期范围 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">日期范围</label>
-            <div class="flex space-x-2">
-              <button
-                v-for="d in [7,30,90]"
-                :key="d"
-                class="date-range-btn px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                :class="state.dateRange===d ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                @click="setDateRange(d)"
-              >
-                {{ d }}天
-              </button>
-            </div>
-          </div>
-
-          <!-- 国家 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">国家/地区</label>
-            <div class="relative">
-              <select
-                id="country-select"
-                v-model="state.country"
-                class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg appearance-none bg-white border"
-              >
-                <option value="">选择国家/地区</option>
-                <option v-for="c in state.countryData" :key="c.code" :value="c.code">{{ c.name }}</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <i class="fas fa-chevron-down text-xs"></i>
-              </div>
-            </div>
-          </div>
-
-          <!-- 设备 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">设备</label>
-            <div class="flex space-x-2">
-              <button
-                v-for="dev in devices"
-                :key="dev.value"
-                class="device-btn px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                :class="state.device===dev.value ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                @click="state.device = dev.value"
-              >
-                {{ dev.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 榜单类型 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">榜单类型</label>
-            <div class="flex space-x-2">
-              <button
-                v-for="t in chartTypes"
-                :key="t.value"
-                class="chart-type-btn px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                :class="state.chartType===t.value ? 'bg-primary text-white hover:bg-primary/90' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                @click="state.chartType = t.value"
-              >
-                {{ t.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 榜单分类 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">榜单分类</label>
-            <div class="relative">
-              <select
-                id="category-select"
-                v-model="state.category"
-                class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg appearance-none bg-white border"
-              >
-                <option value="all">所有分类</option>
-                <option value="games">游戏</option>
-                <option value="apps">应用</option>
-                <option value="social">社交</option>
-                <option value="entertainment">娱乐</option>
-                <option value="productivity">生产力</option>
-                <option value="education">教育</option>
-                <option value="finance">财务</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <i class="fas fa-chevron-down text-xs"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 应用搜索 + 已选 -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- 应用搜索 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">应用搜索 (最多选择3个)</label>
-            <div class="flex">
-              <div class="relative flex-grow">
-                <input
-                  id="app-search"
-                  v-model="searchKeyword"
-                  type="text"
-                  placeholder="输入应用名称或ID"
-                  class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                  @focus="openSearchModal"
-                />
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i class="fas fa-search text-gray-400"></i>
-                </div>
-              </div>
-              <button
-                id="search-btn"
-                class="px-4 py-2 bg-primary text-white font-medium rounded-r-lg hover:bg-primary/90 transition-colors"
-                @click="openSearchModal"
-              >
-                <i class="fas fa-search mr-1"></i> 搜索
-              </button>
-            </div>
-          </div>
-
-          <!-- 已选应用 -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">
-              已选应用 (<span id="selected-count">{{ state.selectedApps.length }}</span>/3)
-            </label>
-            <div id="selected-apps" class="flex flex-wrap gap-2">
-              <template v-if="state.selectedApps.length">
-                <div
-                  v-for="app in selectedAppObjects"
-                  :key="app.id"
-                  class="flex items-center bg-blue-50 text-primary text-xs px-3 py-1.5 rounded-full"
-                >
-                  <img :src="app.icon" :alt="app.name" class="h-4 w-4 rounded-full mr-2" />
-                  <span class="truncate max-w-[100px]">{{ app.name }}</span>
-                  <button class="ml-1 text-primary/70 hover:text-primary" @click="removeSelected(app.id)">
-                    <i class="fas fa-times-circle"></i>
-                  </button>
-                </div>
-              </template>
-              <div v-else class="text-xs text-gray-500 italic">暂无选择</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="flex justify-end mt-6">
-          <button
-            id="reset-btn"
-            class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white text-sm font-medium mr-3 hover:bg-gray-50 transition-colors"
-            @click="onReset"
-          >
-            <i class="fas fa-redo mr-1"></i> 重置
-          </button>
-          <button
-            id="analyze-btn"
-            class="px-6 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
-            @click="onAnalyze"
-          >
-            <i class="fas fa-chart-line mr-1"></i> 开始预测分析
-          </button>
-        </div>
-      </div>
+      <!-- 筛选区（已拆分为可复用组件） -->
+      <FilterBox
+        v-model:dateRange="state.dateRange"
+        v-model:country="state.country"
+        v-model:device="state.device"
+        v-model:chartType="state.chartType"
+        v-model:category="state.category"
+        v-model:selectedApps="state.selectedApps"
+      />
 
       <!-- 核心预测结果区：趋势 + TopN -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -360,73 +204,6 @@
       </div>
     </div>
 
-    <!-- 搜索弹窗 -->
-    <div
-      id="search-modal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      :class="showSearch ? '' : 'hidden'"
-      @click.self="showSearch=false"
-    >
-      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-        <div class="p-4 border-b flex justify-between items-center">
-          <h3 class="text-lg font-medium text-gray-800">搜索应用</h3>
-          <button class="text-gray-500 hover:text-gray-700" @click="showSearch=false">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="p-4">
-          <div class="relative">
-            <input
-              id="modal-app-search"
-              v-model.trim="modalKeyword"
-              type="text"
-              placeholder="输入应用名称或ID"
-              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-              @input="doModalSearch"
-              autofocus
-            />
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-search text-gray-400"></i>
-            </div>
-          </div>
-          <div class="mt-2 text-sm text-gray-500">最多可选择3个应用进行对比</div>
-        </div>
-        <div class="flex-grow overflow-y-auto p-4">
-          <div class="space-y-2">
-            <div
-              v-for="app in modalResults"
-              :key="app.id"
-              class="flex items-center p-3 rounded-lg transition-colors"
-              :class="isSelected(app.id)?'bg-blue-50 border border-blue-200':'hover:bg-gray-50 border border-transparent'"
-            >
-              <div class="flex-shrink-0 h-10 w-10">
-                <img :src="app.icon" :alt="app.name" class="h-10 w-10 rounded object-cover" />
-              </div>
-              <div class="ml-3 flex-grow">
-                <div class="text-sm font-medium text-gray-900">{{ app.name }}</div>
-                <div class="text-xs text-gray-500">ID: {{ app.id }}</div>
-              </div>
-              <div class="flex-shrink-0">
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                  :checked="isSelected(app.id)"
-                  @change="toggleSelect(app.id)"
-                />
-              </div>
-            </div>
-            <div v-if="!modalResults.length" class="text-center py-8 text-gray-500">
-              {{ modalKeyword ? '未找到匹配的应用' : '请输入应用名称或ID进行搜索' }}
-            </div>
-          </div>
-        </div>
-        <div class="p-4 border-t flex justify-end">
-          <button class="px-6 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm" @click="confirmSelection">
-            确认选择
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -435,7 +212,17 @@
 // 后续你可把 mock 数据替换为真实后端接口。
 
 import * as echarts from 'echarts'
-import { onMounted, onBeforeUnmount, reactive, ref, computed } from 'vue'
+import { onMounted, onBeforeUnmount, reactive, ref, watch, computed } from 'vue'
+import FilterBox from "@/components/charts/filter_box.vue";
+
+// lodash.debounce 可替换为下方简单实现
+function debounce<T extends (...args:any[])=>any>(fn:T, wait=400){
+  let timer:ReturnType<typeof setTimeout>|null=null
+  return function(this:unknown, ...args:Parameters<T>){
+    if(timer) clearTimeout(timer)
+    timer = setTimeout(()=>fn.apply(this,args), wait)
+  }
+}
 
 // ——— 状态 ———
 const state = reactive({
@@ -445,52 +232,33 @@ const state = reactive({
   chartType: 'free' as 'free'|'paid'|'grossing',
   category: 'all' as string,
   selectedApps: [] as string[],
-  countryData: [] as Array<{code:string; name:string}>,
   isLoading: false
+})
+// 榜单类型映射（显示值 -> 后端参数）
+const rankGroupMap = {
+  free: 'rank_a',
+  paid: 'rank_b',
+  grossing: 'rank_c'
+}
+
+// 统一过滤参数对象（组合所有筛选项）
+const filters = computed(() => {
+  const group = rankGroupMap[state.chartType] ?? state.chartType
+  return {
+    dateRange: state.dateRange,
+    country: state.country,
+    device: state.device,
+    rankGroup: group,
+    genre: state.category || null,  // 总是把选择的分类传给后端；后端按 rankGroup 到 rank_a/rank_b/rank_c 的 JSON 里取 $.genre 进行过滤
+    category: state.category,
+    chartType: state.chartType
+  }
 })
 
 const loadingMessage = ref('加载中...')
-const searchKeyword = ref('')
-const showSearch = ref(false)
-const modalKeyword = ref('')
-const modalResults = ref<Array<{id:string; name:string; publisher:string; icon:string}>>([])
-
-// 设备/榜单类型字典（用于按钮）
-const devices = [
-  { value: 'iphone', label: 'iPhone' },
-  { value: 'ipad', label: 'iPad' },
-  { value: 'android', label: 'Android' },
-]
-const chartTypes = [
-  { value: 'free', label: '免费' },
-  { value: 'paid', label: '付费' },
-  { value: 'grossing', label: '畅销' },
-]
 
 // ——— 模拟数据（保留原始逻辑） ———
 const COLORS = ['#165DFF','#722ED1','#F53F3F','#FF7D00','#0FC6C2','#86909C','#00B42A','#F7BA1E','#8E44AD','#3498DB']
-
-const mockCountries = [
-  { code: 'us', name: '美国' },{ code: 'cn', name: '中国' },{ code: 'jp', name: '日本' },
-  { code: 'de', name: '德国' },{ code: 'fr', name: '法国' },{ code: 'uk', name: '英国' },
-  { code: 'ca', name: '加拿大' },{ code: 'au', name: '澳大利亚' },{ code: 'kr', name: '韩国' },
-  { code: 'sg', name: '新加坡' }
-]
-
-const mockApps = [
-  { id:'123456', name:'TikTok', publisher:'TikTok Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/6d3cd0fc3500c413f385b5e57dd33a25.png' },
-  { id:'1475863182', name:'Instagram', publisher:'Meta Platforms, Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/49acdead6076f91bae19dc6b9cf6c12f.png' },
-  { id:'389801252', name:'Facebook', publisher:'Meta Platforms, Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/a03d1a5028bfa0ca868e34aac6784ec8.png' },
-  { id:'544007664', name:'YouTube', publisher:'Google LLC', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/b4fcc50077b661700453f861ba2e804f.png' },
-  { id:'1142110895', name:'Snapchat', publisher:'Snap Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/541477b363244fc06af9c0bcaebc7694.png' },
-  { id:'328401282', name:'WhatsApp', publisher:'WhatsApp Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/77b7cbe572f5b840e350a33352a996ea.png' },
-  { id:'1451383635', name:'Telegram', publisher:'Telegram FZ-LLC', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/44932a182f094f791b065a8831297739.png' },
-  { id:'1280458064', name:'Spotify', publisher:'Spotify AB', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/14cef10de33d8e94815ea40f68390213.png' },
-  { id:'529479190', name:'WeChat', publisher:'Tencent Holdings Limited', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/f5132f61e5cdc164f83330da706fa84f.png' },
-  { id:'1444383602', name:'Zoom', publisher:'Zoom Video Communications, Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/bb7190d678f5488cd3746a34b0fed6cd.png' },
-  { id:'1055511498', name:'Netflix', publisher:'Netflix, Inc.', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/575afb27644d2e3b2268c91b34934dfa.png' },
-  { id:'1114214755', name:'Disney+', publisher:'Disney', icon:'https://design.gemcoder.com/staticResource/echoAiSystemImages/269614931cbef3394562f0f634889255.png' }
-]
 
 // 趋势图 mock
 function generateMockTrendData(appIds: string[], days=7){
@@ -503,7 +271,6 @@ function generateMockTrendData(appIds: string[], days=7){
     dates.push(d.toLocaleDateString('zh-CN',{month:'numeric', day:'numeric'}))
   }
   appIds.forEach((id, idx)=>{
-    const app = mockApps.find(a=>a.id===id) || {name:'未知应用', id}
     const baseRank = Math.floor(Math.random()*50)+1
     const ranks:number[] = []
     for(let i=0;i<days;i++){
@@ -513,8 +280,8 @@ function generateMockTrendData(appIds: string[], days=7){
       ranks.push(rank)
     }
     data.push({
-      name: app.name,
-      appId: app.id,
+      name: id,
+      appId: id,
       type: 'line',
       data: ranks,
       smooth: true,
@@ -529,27 +296,31 @@ function generateMockTrendData(appIds: string[], days=7){
   return { dates, series:data }
 }
 
-// TopN mock
-function generateMockTopNData(days=7){
-  const shuffled = [...mockApps].sort(()=>0.5-Math.random())
-  const topN = []
-  for(let i=0;i<10;i++){
-    const app = shuffled[i]
-    const rank = i+1
-    const prevRank = Math.max(1, rank + Math.floor(Math.random()*10)-5)
+function generateMockTopNData(days=7, appIds: string[] = []){
+  // 说明：
+  // - 用当前已选择的应用 ID 或自动生成占位应用名称来构建 TopN 列表。
+  const baseList = (appIds && appIds.length > 0)
+    ? [...appIds]
+    : Array.from({ length: 10 }, (_v, i) => `App ${i + 1}`)
+
+  const topN:any[] = []
+  baseList.slice(0, 10).forEach((id, idx) => {
+    const rank = idx + 1
+    const prevRank = Math.max(1, rank + Math.floor(Math.random() * 10) - 5)
     const change = prevRank - rank
-    const changePercent = Math.round(Math.abs(change)/prevRank*100)
+    const changePercent = Math.round(Math.abs(change) / prevRank * 100)
+
     topN.push({
       rank,
-      appName: app.name,
-      publisher: app.publisher,
-      appId: app.id,
-      icon: app.icon,
+      appName: String(id),
+      publisher: '',
+      appId: String(id),
+      icon: '',
       prevRank,
       change,
       changePercent
     })
-  }
+  })
   return topN
 }
 
@@ -560,10 +331,6 @@ function generateMockAccuracyData(){
   return { months, accuracy: acc.map(a=> Math.round(a*10)/10) }
 }
 
-// ——— 选中应用映射 ———
-const selectedAppObjects = computed(()=> state.selectedApps
-  .map(id => mockApps.find(a=>a.id===id))
-  .filter(Boolean) as typeof mockApps)
 
 // ——— 图表实例 ———
 const trendRef = ref<HTMLDivElement|null>(null)
@@ -580,57 +347,26 @@ const topNRows = ref<any[]>([])
 // ——— 动作 ———
 function setDateRange(d:7|30|90){ state.dateRange = d }
 
-function openSearchModal(){
-  showSearch.value = true
-  modalKeyword.value = ''
-  modalResults.value = []
-}
-
-function isSelected(id:string){ return state.selectedApps.includes(id) }
-
-function toggleSelect(id:string){
-  if (isSelected(id)) {
-    state.selectedApps = state.selectedApps.filter(x=>x!==id)
-  } else {
-    if (state.selectedApps.length >= 3) return
-    state.selectedApps.push(id)
-  }
-}
-
-function confirmSelection(){ showSearch.value=false }
-
-function removeSelected(id:string){
-  state.selectedApps = state.selectedApps.filter(x=>x!==id)
-}
-
-function doModalSearch(){
-  const key = modalKeyword.value.toLowerCase().trim()
-  if(!key){ modalResults.value = []; return }
-  modalResults.value = mockApps.filter(a=> a.name.toLowerCase().includes(key) || a.id.includes(key))
-}
-
 function onReset(){
   state.selectedApps = []
-  renderTrendChart()
-  renderTopNTable()
-
   // 重置筛选
   state.dateRange = 7
   state.device = 'iphone'
   state.chartType = 'free'
   state.category = 'all'
-  state.country = state.countryData[0]?.code || ''
-  searchKeyword.value = ''
+  state.country = ''
+  // 主动刷新
+  reloadAll()
 }
 
 function onAnalyze(){
   if (!state.selectedApps.length) {
     alert('请至少选择一个应用进行分析'); return
   }
+  // 分析时可刷新
   showLoading('正在分析数据并生成预测结果...')
   setTimeout(()=>{
-    renderTrendChart()
-    renderTopNTable()
+    reloadAll()
     hideLoading()
   }, 600)
 }
@@ -657,33 +393,14 @@ function renderTrendChart(){
     }, true)
     return
   }
-  const { dates, series } = generateMockTrendData(state.selectedApps, state.dateRange)
-  const maxRank = Math.max(...series.flatMap((s:any)=>s.data)) + 10
-  const option: echarts.EChartsOption = {
-    tooltip:{
-      trigger:'axis',
-      axisPointer:{ type:'cross', label:{ backgroundColor:'#6a7985' }},
-      formatter(params:any){
-        let res = `${params[0].name}<br/>`
-        params.forEach((it:any)=>{
-          res += `<span style="display:inline-block;margin-right:5px;width:10px;height:10px;border-radius:50%;background-color:${it.color};"></span>`
-          res += `${it.seriesName}: 第${it.data}名<br/>`
-        })
-        return res
-      }
-    },
-    legend:{ data: series.map((s:any)=>s.name), top:0, left:'center', orient:'horizontal', backgroundColor:'transparent', textStyle:{ fontSize:12 }},
-    grid:{ left:'3%', right:'4%', bottom:'10%', top:'15%', containLabel:true },
-    xAxis:{ type:'category', data:dates, axisLabel:{ interval:0, rotate:30, fontSize:12 }, axisLine:{ lineStyle:{ color:'#E5E7EB' } }, splitLine:{ show:false }},
-    yAxis:{ type:'value', inverse:true, min:1, max:maxRank, axisLabel:{ formatter:'{value}' }, axisLine:{ show:false }, splitLine:{ lineStyle:{ color:'#F3F4F6' } } },
-    series,
-    dataZoom:[{ type:'slider', show:true, xAxisIndex:0, bottom:0, start:0, end:100, height:8, handleSize:'100%', backgroundColor:'#F3F4F6', fillerColor:'#CBD5E1', borderColor:'transparent' }]
-  }
-  trendChart.setOption(option, true)
+  // 数据已由 loadTrend 设置
+  if (!trendChartOptionCache) return
+  trendChart.setOption(trendChartOptionCache, true)
 }
 
 function renderTopNTable(){
-  topNRows.value = generateMockTopNData(state.dateRange)
+  // 数据已由 loadTopN 设置
+  // topNRows.value 已被赋值
 }
 
 function renderAccuracyChart(){
@@ -704,12 +421,62 @@ function renderAccuracyChart(){
   accuracyChart.setOption(option, true)
 }
 
+// ——— 数据加载与防抖监听 ———
+let trendChartOptionCache: echarts.EChartsOption | null = null
+
+async function loadTrend(params: any, appIds: string[]) {
+  // 用 mock 数据模拟
+  const { dates, series } = generateMockTrendData(appIds, params.dateRange)
+  const maxRank = Math.max(...series.flatMap((s:any)=>s.data)) + 10
+  trendChartOptionCache = {
+    tooltip:{
+      trigger:'axis',
+      axisPointer:{ type:'cross', label:{ backgroundColor:'#6a7985' }},
+      formatter(params:any){
+        let res = `${params[0].name}<br/>`
+        params.forEach((it:any)=>{
+          res += `<span style="display:inline-block;margin-right:5px;width:10px;height:10px;border-radius:50%;background-color:${it.color};"></span>`
+          res += `${it.seriesName}: 第${it.data}名<br/>`
+        })
+        return res
+      }
+    },
+    legend:{ data: series.map((s:any)=>s.name), top:0, left:'center', orient:'horizontal', backgroundColor:'transparent', textStyle:{ fontSize:12 }},
+    grid:{ left:'3%', right:'4%', bottom:'10%', top:'15%', containLabel:true },
+    xAxis:{ type:'category', data:dates, axisLabel:{ interval:0, rotate:30, fontSize:12 }, axisLine:{ lineStyle:{ color:'#E5E7EB' } }, splitLine:{ show:false }},
+    yAxis:{ type:'value', inverse:true, min:1, max:maxRank, axisLabel:{ formatter:'{value}' }, axisLine:{ show:false }, splitLine:{ lineStyle:{ color:'#F3F4F6' } } },
+    series,
+    dataZoom:[{ type:'slider', show:true, xAxisIndex:0, bottom:0, start:0, end:100, height:8, handleSize:'100%', backgroundColor:'#F3F4F6', fillerColor:'#CBD5E1', borderColor:'transparent' }]
+  }
+  renderTrendChart()
+}
+
+async function loadTopN(params: any, appIds: string[]) {
+  // 用 mock 数据模拟
+  topNRows.value = generateMockTopNData(params.dateRange, appIds)
+}
+
+// 总刷新逻辑：防抖调用
+const reloadAll = debounce(async ()=>{
+  // 若设备不是 iphone，清空 topNRows，渲染趋势图
+  if (state.device !== 'iphone') {
+    topNRows.value = []
+    trendChartOptionCache = null
+    renderTrendChart()
+    return
+  }
+  showLoading('数据加载中...')
+  await loadTrend(filters.value, state.selectedApps)
+  await loadTopN(filters.value, state.selectedApps)
+  hideLoading()
+}, 400)
+
+// 监听 filters 变化，自动刷新
+watch(filters, reloadAll, { deep: true })
+watch(() => state.selectedApps, reloadAll, { deep: true })
+
 // ——— 生命周期 ———
 onMounted(()=>{
-  // 初始化国家数据 & 默认选中
-  state.countryData = mockCountries
-  state.country = state.countryData[0]?.code || ''
-
   // init charts
   trendChart = echarts.init(trendRef.value as HTMLDivElement)
   accuracyChart = echarts.init(accuracyRef.value as HTMLDivElement)
@@ -718,8 +485,7 @@ onMounted(()=>{
   // 初始渲染
   showLoading('初始化数据加载中...')
   setTimeout(()=>{
-    renderTrendChart()
-    renderTopNTable()
+    reloadAll()
     renderAccuracyChart()
     hideLoading()
   }, 500)

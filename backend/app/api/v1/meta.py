@@ -8,27 +8,28 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import get_session  # 你现有的依赖
-from app.db.models.ranking import AppStoreRankingDaily  # 你的 ORM 模型
+from app.db.models.ranking import AppStoreRankingDaily
+from app.db.models.rating import AppRatings  # 使用 AppRatings 表（app_ratings）
 
 router = APIRouter(prefix="/api/v1", tags=["meta"])
 
-VALID_FIELDS: Set[str] = {"country", "device", "brand_id", "is_ad", "chart_date"}
+VALID_FIELDS: Set[str] = {"country", "device", "is_ad", "chart_date", "brand"}
 
 @router.get("/meta/options")
 async def get_meta_options(
-    fields: Optional[str] = Query(None, description="用逗号分隔的字段名: country,device,brand_id,is_ad,chart_date"),
+    fields: Optional[str] = Query(None, description="用逗号分隔的字段名: country,device,is_ad,chart_date,brand"),
     session: AsyncSession = Depends(get_session),
 ) -> Dict[str, Any]:
     """
     返回可选项列表（下拉数据）
-    - /api/v1/meta/options?fields=country,device,brand_id,is_ad,chart_date
+    - /api/v1/meta/options?fields=country,device,is_ad,chart_date,brand
     - 不传 fields 则以上字段都返回
     字段说明：
-      * country: 去重后的国家代码列表
-      * device: 去重后的设备列表
-      * brand_id: 去重后的榜单类型（0=付费,1=免费,2=畅销）
+      * country: 去重后的国家代码列表（来自 AppRatings.country）
+      * device: 去重后的设备列表（来自 AppRatings.device；当前仅 iphone 也会照常返回）
       * is_ad: 固定返回 [0, 1]（即使库中只有单侧值，前端仍可优先展示“全部”）
-      * chart_date: 返回 {"min": YYYY-MM-DD, "max": YYYY-MM-DD} 的日期范围
+      * chart_date: 返回 {"min": YYYY-MM-DD, "max": YYYY-MM-DD} 的日期范围（来自 AppRatings.update_time）
+      * brand: 去重后的榜单类型列表（来自 AppRatings.brand；预期为 free/paid/grossing）
     """
     wanted = set(f.strip().lower() for f in (fields.split(",") if fields else [])) & VALID_FIELDS
     if not wanted:
@@ -38,37 +39,37 @@ async def get_meta_options(
 
     if "country" in wanted:
         stmt = (
-            select(func.distinct(AppStoreRankingDaily.country))
-            .where(AppStoreRankingDaily.country.isnot(None))
-            .order_by(AppStoreRankingDaily.country.asc())
+            select(func.distinct(AppRatings.country))
+            .where(AppRatings.country.isnot(None))
+            .order_by(AppRatings.country.asc())
         )
         rows = (await session.execute(stmt)).scalars().all()
         result["country"] = [r for r in rows if r != ""]
 
+    if "brand" in wanted:
+        stmt = (
+            select(func.distinct(AppRatings.brand))
+            .where(AppRatings.brand.isnot(None))
+            .order_by(AppRatings.brand.asc())
+        )
+        rows = (await session.execute(stmt)).scalars().all()
+        # 仅返回非空字符串，保持去重后的有序列表
+        result["brand"] = [r for r in rows if r != ""]
+
     if "device" in wanted:
         stmt = (
-            select(func.distinct(AppStoreRankingDaily.device))
-            .where(AppStoreRankingDaily.device.isnot(None))
-            .order_by(AppStoreRankingDaily.device.asc())
+            select(func.distinct(AppRatings.device))
+            .where(AppRatings.device.isnot(None))
+            .order_by(AppRatings.device.asc())
         )
         rows = (await session.execute(stmt)).scalars().all()
         result["device"] = [r for r in rows if r != ""]
-
-    if "brand_id" in wanted:
-        stmt = (
-            select(func.distinct(AppStoreRankingDaily.brand_id))
-            .where(AppStoreRankingDaily.brand_id.isnot(None))
-            .order_by(AppStoreRankingDaily.brand_id.asc())
-        )
-        rows = (await session.execute(stmt)).scalars().all()
-        # 只保留非空整数
-        result["brand_id"] = [int(r) for r in rows if r is not None]
 
     if "is_ad" in wanted:
         result["is_ad"] = [0, 1]
 
     if "chart_date" in wanted:
-        stmt = select(func.min(AppStoreRankingDaily.chart_date), func.max(AppStoreRankingDaily.chart_date))
+        stmt = select(func.min(AppRatings.update_time), func.max(AppRatings.update_time))
         minmax = (await session.execute(stmt)).first() or (None, None)
         min_d, max_d = minmax
         result["chart_date"] = {

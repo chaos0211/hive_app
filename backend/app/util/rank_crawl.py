@@ -21,6 +21,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
+import re
 
 # Ensure we can import `app` when running this script from any directory
 from pathlib import Path
@@ -42,6 +43,7 @@ BASE_URL = "https://api.qimai.cn/rank/indexPlus/brand_id/{brand_id}"
 BASE_URL_INDEX = "https://api.qimai.cn/rank/index"
 BRAND_MAP = {0: "paid", 1: "free", 2: "grossing"}
 BRAND_NAME_TO_ID = {v: k for k, v in BRAND_MAP.items()}
+BRAND_ALLOWED = {"free", "paid", "grossing"}
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
@@ -112,6 +114,7 @@ def fetch_rank_page(date_str: str, brand_id: int, genre: int, page: int,
     if analysis:
         params["analysis"] = analysis
     full_url = f"{url}?" + "&".join(f"{k}={v}" for k, v in params.items())
+    brand_used = _brand_from_url(full_url, brand)
     print(f"[DEBUG] Fetching: {full_url}  Country={country} Device={device}")
     last_err = None
     for attempt in range(retries):
@@ -153,6 +156,7 @@ def fetch_rank_index(date_str: str, brand: str, genre: int, page: int,
         "is_rank_index": "1",
     }
     full_url = f"{url}?" + "&".join(f"{k}={v}" for k, v in params.items())
+    brand_used = _brand_from_url(full_url, brand)
     print(f"[DEBUG] Fetching (index): {full_url}  Country={country} Device={device}")
     last_err = None
     for attempt in range(retries):
@@ -163,6 +167,7 @@ def fetch_rank_index(date_str: str, brand: str, genre: int, page: int,
                 continue
             r.raise_for_status()
             data = r.json()
+            data["_brand_used"] = brand_used
             try:
                 code = data.get("code")
                 msg = data.get("msg") or data.get("message")
@@ -174,10 +179,29 @@ def fetch_rank_index(date_str: str, brand: str, genre: int, page: int,
         except Exception as e:
             last_err = e
             time.sleep(backoff * (attempt + 1))
-    return {"code": -1, "msg": f"request-failed: {last_err}", "status": getattr(last_err, 'response', None).status_code if hasattr(last_err, 'response') and last_err.response else None}
-
+    return {
+        "code": -1,
+        "msg": f"request-failed: {last_err}",
+        "status": getattr(last_err, 'response', None).status_code if hasattr(last_err,
+                                                                             'response') and last_err.response else None,
+        "_brand_used": brand_used
+    }
 def ensure_dir(p: str):
     os.makedirs(p, exist_ok=True)
+
+def _brand_from_url(full_url: str, fallback: str | None = None) -> str | None:
+    """
+    从完整 URL 中用正则解析 brand=xxx，仅允许 {free, paid, grossing}，否则回退到 fallback。
+    """
+    try:
+        m = re.search(r'(?:[?&])brand=([^&]+)', full_url or '')
+        if m:
+            val = (m.group(1) or '').strip()
+            if val in BRAND_ALLOWED:
+                return val
+    except Exception:
+        pass
+    return fallback if (fallback in BRAND_ALLOWED) else None
 
 # ===== Helpers for app_ratings mapping =====
 from typing import Dict, Any, List
@@ -199,7 +223,7 @@ def _safe_int(v):
         return None
 
 
-def normalize_rankinfo_to_app_ratings(date_str: str, brand_id: int, genre_id: int, country: str, device: str,
+def normalize_rankinfo_to_app_ratings(date_str: str, brand_id: int, brand_name: str, genre_id: int, country: str, device: str,
                                        item: Dict[str, Any]) -> Dict[str, Any]:
     """Map a rankInfo item to an AppRatings-compatible dict."""
     app = item.get("appInfo", {}) or {}
@@ -223,6 +247,7 @@ def normalize_rankinfo_to_app_ratings(date_str: str, brand_id: int, genre_id: in
         "chart_date": _parse_date_ymd(date_str),
         "update_time": _parse_date_ymd(date_str),
         "index": item.get("index"),
+        "brand": brand_name,
         "genre": genre_name,
         "keyword_cover": _safe_int(item.get("keywordCover")),
         "keyword_cover_top3": _safe_int(item.get("keywordCoverTop3")),
@@ -361,6 +386,13 @@ def main():
                     genre = args.genre
                     for page in range(1, args.max_pages + 1):
                         data = fetch_rank_index(date_str, brand_name, genre, page, country=args.country, device=args.device)
+                        # 以 URL 解析出的 brand 为准，保证与请求一致
+                        brand_used = data.get("_brand_used") or brand_name
+                        if brand_used not in BRAND_ALLOWED:
+                            logging.warning(f"解析到的 brand 非法: {brand_used}, 跳过该页 (date={date_str}, page={page})")
+                            break
+                        # 用解析后的 brand 重新计算 brand_id，保持一致性
+                        brand_id = BRAND_NAME_TO_ID.get(brand_used, brand_id)
                         total_pages += 1
                         # —— 保存 ——
                         if args.save_raw and raw_root:
@@ -404,7 +436,7 @@ def main():
                         # —— 入库到 app_ratings（优先），否则兜底写旧主表 ——
                         records = [
                             normalize_rankinfo_to_app_ratings(
-                                date_str, brand_id, args.genre, args.country, args.device, it
+                                date_str, brand_id, brand_used, args.genre, args.country, args.device, it
                             )
                             for it in lst
                         ]
