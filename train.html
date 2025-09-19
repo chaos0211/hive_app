@@ -1,0 +1,2009 @@
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>手机应用榜单模型训练平台</title>
+    <script src="https://res.gemcoder.com/js/reload.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script>
+      tailwind.config = {
+                  theme: {
+                      extend: {
+                          colors: {
+                              primary: '#165DFF',
+                              secondary: '#36CFC9',
+                              success: '#52C41A',
+                              warning: '#FAAD14',
+                              danger: '#FF4D4F',
+                              info: '#1890FF',
+                              dark: '#1D2129',
+                              'dark-2': '#4E5969',
+                              'light-1': '#F2F3F5',
+                              'light-2': '#E5E6EB',
+                              'light-3': '#C9CDD4'
+                          },
+                          fontFamily: {
+                              inter: ['Inter', 'system-ui', 'sans-serif'],
+                          },
+                          spacing: {
+                              '7': '1.75rem',
+                              '14': '3.5rem',
+                              '28': '7rem',
+                              '36': '9rem',
+                              '50': '12.5rem',
+                          },
+                          boxShadow: {
+                              'card': '0 2px 14px 0 rgba(0, 0, 0, 0.06)',
+                              'card-hover': '0 4px 20px 0 rgba(0, 0, 0, 0.1)',
+                          }
+                      },
+                  }
+              }
+    </script>
+    <style type="text/tailwindcss">
+      @layer utilities {
+          .content-auto {
+              content-visibility: auto;
+          }
+          .card-transition {
+              transition: all 0.3s ease;
+          }
+          .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+          }
+          .scrollbar-hide {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+          }
+          .text-balance {
+              text-wrap: balance;
+          }
+          .grid-cols-card {
+              grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 font-inter text-dark min-h-screen">
+    <!-- [MODULE] a1b_主内容区域 -->
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+      <!-- [MODULE] c3d_训练概览区 -->
+      <div
+        class="bg-white rounded-xl shadow-card p-6 mb-6 card-transition hover:shadow-card-hover"
+      >
+        <div
+          class="flex flex-col md:flex-row md:items-center justify-between mb-6"
+        >
+          <div>
+            <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-dark mb-2">
+              模型训练中心
+            </h1>
+            <p class="text-dark-2">
+              实时监控模型训练过程、评估训练结果与历史模型性能
+            </p>
+          </div>
+          <div class="flex space-x-3 mt-4 md:mt-0">
+            <button
+              class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center transition-all"
+            >
+              <i class="fas fa-plus mr-2"> </i>
+              新建训练
+            </button>
+            <button
+              class="bg-white border border-light-2 hover:border-primary text-dark px-4 py-2 rounded-lg flex items-center transition-all"
+            >
+              <i class="fas fa-download mr-2"> </i>
+              导出报告
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div class="bg-light-1 rounded-lg p-4">
+            <p class="text-dark-2 text-sm mb-1">模型类型</p>
+            <p class="font-semibold">LSTM时序预测模型</p>
+          </div>
+          <div class="bg-light-1 rounded-lg p-4">
+            <p class="text-dark-2 text-sm mb-1">训练数据范围</p>
+            <p class="font-semibold">中国 · iOS · 免费榜 · 游戏</p>
+          </div>
+          <div class="bg-light-1 rounded-lg p-4">
+            <p class="text-dark-2 text-sm mb-1">数据拆分比例</p>
+            <p class="font-semibold">70% / 15% / 15%</p>
+          </div>
+          <div class="bg-light-1 rounded-lg p-4">
+            <p class="text-dark-2 text-sm mb-1">随机种子</p>
+            <p class="font-semibold">42</p>
+          </div>
+          <div class="bg-light-1 rounded-lg p-4">
+            <p class="text-dark-2 text-sm mb-1">运行环境</p>
+            <p class="font-semibold">GPU: Tesla V100</p>
+          </div>
+          <div class="bg-light-1 rounded-lg p-4">
+            <p class="text-dark-2 text-sm mb-1">训练状态</p>
+            <div class="flex items-center">
+              <span
+                class="inline-block w-2 h-2 bg-success rounded-full mr-2 animate-pulse"
+              >
+              </span>
+              <span class="font-semibold text-success">
+                训练中 (Epoch 34/100)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- [/MODULE] c3d_训练概览区 -- 展示训练任务的基本信息，如模型类型、训练数据范围、数据拆分比例、随机种子和运行环境等，并提供新建训练、导出训练卡片等操作按钮 -->
+      <!-- [MODULE] e5f_数据与特征区 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- [MODULE] g7h_数据诊断 -->
+        <div
+          class="bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover"
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-dark">数据诊断</h2>
+            <div class="flex space-x-2">
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-dark font-semibold mb-4">数据量分布</h3>
+              <div id="data-distribution-chart" class="w-full h-64"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 class="text-dark font-semibold mb-4">缺失值热力图</h3>
+                <div id="missing-values-chart" class="w-full h-48"></div>
+              </div>
+              <div>
+                <h3 class="text-dark font-semibold mb-4">时间覆盖率</h3>
+                <div id="time-coverage-chart" class="w-full h-48"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- [/MODULE] g7h_数据诊断 -- 包括数据量分布柱状图、缺失值热力图、时间覆盖率折线图 -->
+        <!-- [MODULE] i9j_特征概览 -->
+        <div
+          class="bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover"
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-dark">特征概览</h2>
+            <div class="flex space-x-2">
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-expand-alt"> </i>
+              </button>
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-6">
+            <h3 class="text-dark font-semibold mb-4">特征重要性</h3>
+            <div id="feature-importance-chart" class="w-full h-64"></div>
+          </div>
+          <div>
+            <h3 class="text-dark font-semibold mb-4">特征列表</h3>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-light-2">
+                <thead>
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      特征名称
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      类型
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      来源
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      预处理
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-light-2">
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">昨日排名</td>
+                    <td class="px-4 py-3 whitespace-nowrap">数值型</td>
+                    <td class="px-4 py-3 whitespace-nowrap">榜单数据</td>
+                    <td class="px-4 py-3 whitespace-nowrap">标准化</td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">下载量</td>
+                    <td class="px-4 py-3 whitespace-nowrap">数值型</td>
+                    <td class="px-4 py-3 whitespace-nowrap">应用商店</td>
+                    <td class="px-4 py-3 whitespace-nowrap">对数变换+标准化</td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">评分</td>
+                    <td class="px-4 py-3 whitespace-nowrap">数值型</td>
+                    <td class="px-4 py-3 whitespace-nowrap">应用商店</td>
+                    <td class="px-4 py-3 whitespace-nowrap">标准化</td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">评论数</td>
+                    <td class="px-4 py-3 whitespace-nowrap">数值型</td>
+                    <td class="px-4 py-3 whitespace-nowrap">应用商店</td>
+                    <td class="px-4 py-3 whitespace-nowrap">对数变换+标准化</td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">是否周末</td>
+                    <td class="px-4 py-3 whitespace-nowrap">类别型</td>
+                    <td class="px-4 py-3 whitespace-nowrap">时间特征</td>
+                    <td class="px-4 py-3 whitespace-nowrap">独热编码</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-3 text-center">
+              <button class="text-primary text-sm hover:underline">
+                查看全部 24 个特征
+                <i class="fas fa-chevron-down ml-1"> </i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- [/MODULE] i9j_特征概览 -- 采用可展开表格列出所有特征、类型、来源及预处理方式，并配合特征重要性柱状图帮助理解输入变量贡献 -->
+      </div>
+      <!-- [/MODULE] e5f_数据与特征区 -- 分为左右两栏，左侧为数据诊断，右侧为特征概览 -->
+      <!-- [MODULE] k0l_训练过程区 -->
+      <div
+        class="bg-white rounded-xl shadow-card p-6 mb-6 card-transition hover:shadow-card-hover"
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-dark">训练过程</h2>
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center">
+              <span class="text-dark-2 mr-2"> 当前状态: </span>
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success"
+              >
+                <span
+                  class="animate-pulse mr-1.5 h-2 w-2 rounded-full bg-success"
+                >
+                </span>
+                训练中 (Epoch 34/100)
+              </span>
+            </div>
+            <div class="flex space-x-2">
+              <button
+                class="bg-danger/10 hover:bg-danger/20 text-danger px-3 py-1.5 rounded-lg text-sm flex items-center transition-all"
+              >
+                <i class="fas fa-pause mr-1.5"> </i>
+                暂停
+              </button>
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-dark font-semibold mb-4">训练与验证指标</h3>
+          <div id="training-metrics-chart" class="w-full h-72"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div>
+            <h3 class="text-dark font-semibold mb-4">学习率变化</h3>
+            <div id="learning-rate-chart" class="w-full h-48"></div>
+          </div>
+          <div>
+            <h3 class="text-dark font-semibold mb-4">早停策略</h3>
+            <div
+              class="bg-light-1 rounded-lg p-4 h-48 flex flex-col justify-center items-center"
+            >
+              <div
+                class="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mb-3"
+              >
+                <i class="fas fa-clock text-warning text-2xl"> </i>
+              </div>
+              <p class="text-dark font-medium mb-1">早停未触发</p>
+              <p class="text-dark-2 text-sm text-center">
+                当前验证集损失仍在下降
+                <br />
+                耐心值: 15/20
+              </p>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-dark font-semibold mb-4">训练资源监控</h3>
+            <div id="resource-usage-chart" class="w-full h-48"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-dark font-semibold">训练日志</h3>
+            <button class="text-primary text-sm hover:underline">
+              查看完整日志
+            </button>
+          </div>
+          <div
+            class="bg-dark/5 rounded-lg p-4 h-40 overflow-y-auto scrollbar-hide text-sm font-mono"
+          >
+            <div class="space-y-2 text-dark-2">
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:45:12] </span>
+                <span>
+                  Epoch 34/100 - Train Loss: 0.0842 - Val Loss: 0.0915
+                </span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:44:58] </span>
+                <span> Train MAE: 0.0621 - Val MAE: 0.0683 </span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:44:58] </span>
+                <span> Train RMSE: 0.0935 - Val RMSE: 0.1021 </span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:44:32] </span>
+                <span> Learning rate adjusted to: 0.00052 </span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:43:15] </span>
+                <span>
+                  Epoch 33/100 - Train Loss: 0.0867 - Val Loss: 0.0932
+                </span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:42:59] </span>
+                <span> Train MAE: 0.0638 - Val MAE: 0.0697 </span>
+              </div>
+              <div class="flex items-start">
+                <span class="text-primary mr-2"> [20:42:59] </span>
+                <span> Train RMSE: 0.0958 - Val RMSE: 0.1038 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- [/MODULE] k0l_训练过程区 -- 采用全宽趋势图展示训练与验证集的Loss、MAE、RMSE随epoch变化的折线图，辅以学习率变化曲线和早停点标记，并提供实时日志流输出 -->
+      <!-- [MODULE] m2n_训练结果与评估区 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- [MODULE] o4p_核心指标卡片 -->
+        <div
+          class="bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover"
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-dark">核心指标</h2>
+            <div class="flex space-x-2">
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div class="bg-light-1 rounded-lg p-5 text-center">
+              <div class="text-danger text-3xl font-bold mb-1">0.0683</div>
+              <div class="text-dark font-medium mb-2">平均绝对误差 (MAE)</div>
+              <div
+                class="flex items-center justify-center text-success text-sm"
+              >
+                <i class="fas fa-arrow-down mr-1"> </i>
+                较上一轮降低 2.1%
+              </div>
+            </div>
+            <div class="bg-light-1 rounded-lg p-5 text-center">
+              <div class="text-danger text-3xl font-bold mb-1">0.1021</div>
+              <div class="text-dark font-medium mb-2">均方根误差 (RMSE)</div>
+              <div
+                class="flex items-center justify-center text-success text-sm"
+              >
+                <i class="fas fa-arrow-down mr-1"> </i>
+                较上一轮降低 1.6%
+              </div>
+            </div>
+            <div class="bg-light-1 rounded-lg p-5 text-center">
+              <div class="text-success text-3xl font-bold mb-1">0.892</div>
+              <div class="text-dark font-medium mb-2">Spearman相关系数</div>
+              <div
+                class="flex items-center justify-center text-success text-sm"
+              >
+                <i class="fas fa-arrow-up mr-1"> </i>
+                较上一轮提升 0.8%
+              </div>
+            </div>
+            <div class="bg-light-1 rounded-lg p-5 text-center">
+              <div class="text-success text-3xl font-bold mb-1">0.764</div>
+              <div class="text-dark font-medium mb-2">NDCG@10</div>
+              <div
+                class="flex items-center justify-center text-success text-sm"
+              >
+                <i class="fas fa-arrow-up mr-1"> </i>
+                较上一轮提升 1.2%
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-dark font-semibold mb-4">Top-K命中率</h3>
+            <div id="topk-hit-rate-chart" class="w-full h-56"></div>
+          </div>
+        </div>
+        <!-- [/MODULE] o4p_核心指标卡片 -- 包括最终MAE、RMSE、Spearman相关系数、NDCG@K、Top-K命中率等 -->
+        <!-- [MODULE] q6r_误差分布与分组表现 -->
+        <div
+          class="bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover"
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-dark">模型评估</h2>
+            <div class="flex space-x-2">
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-dark font-semibold mb-4">误差分布</h3>
+              <div id="error-distribution-chart" class="w-full h-48"></div>
+            </div>
+            <div>
+              <h3 class="text-dark font-semibold mb-4">分组表现</h3>
+              <div id="group-performance-chart" class="w-full h-48"></div>
+            </div>
+          </div>
+          <div class="mt-6">
+            <h3 class="text-dark font-semibold mb-4">预测vs实际值对比</h3>
+            <div id="prediction-vs-actual-chart" class="w-full h-48"></div>
+          </div>
+        </div>
+        <!-- [/MODULE] q6r_误差分布与分组表现 -- 右侧为误差分布直方图或箱线图及分组表现柱状图（按免费/付费/畅销或不同genre拆分） -->
+      </div>
+      <!-- [/MODULE] m2n_训练结果与评估区 -- 左侧为核心指标卡片，右侧为误差分布与分组表现，全面呈现模型的准确率与稳健性 -->
+      <!-- [MODULE] s7t_模型解释区 -->
+      <div
+        class="bg-white rounded-xl shadow-card p-6 mb-6 card-transition hover:shadow-card-hover"
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-dark">模型解释</h2>
+          <div class="flex space-x-2">
+            <button class="text-dark-2 hover:text-primary transition-colors">
+              <i class="fas fa-ellipsis-v"> </i>
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-dark font-semibold mb-4">SHAP Summary图</h3>
+            <div id="shap-summary-chart" class="w-full h-72"></div>
+          </div>
+          <div>
+            <h3 class="text-dark font-semibold mb-4">样本解释蜂群图</h3>
+            <div class="mb-4 flex items-center space-x-3">
+              <select
+                class="bg-light-1 border border-light-2 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              >
+                <option>样本 #145 (高预测值)</option>
+                <option>样本 #289 (中预测值)</option>
+                <option>样本 #321 (低预测值)</option>
+              </select>
+              <button
+                class="bg-primary/10 text-primary px-3 py-2 rounded-lg text-sm hover:bg-primary/20 transition-colors"
+              >
+                生成解释报告
+              </button>
+            </div>
+            <div id="shap-beeswarm-chart" class="w-full h-64"></div>
+          </div>
+        </div>
+      </div>
+      <!-- [/MODULE] s7t_模型解释区 -- 通过SHAP summary图、样本解释蜂群图等展现特征贡献和单样本预测原因，增强可解释性 -->
+      <!-- [MODULE] u8v_模型卡与产出区 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- [MODULE] w9x_模型卡 -->
+        <div
+          class="bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover"
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-dark">模型卡</h2>
+            <div class="flex space-x-2">
+              <button
+                class="bg-primary/10 text-primary px-3 py-1.5 rounded-lg text-sm flex items-center transition-all"
+              >
+                <i class="fas fa-download mr-1.5"> </i>
+                下载模型
+              </button>
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p class="text-dark-2 text-sm mb-1">模型版本</p>
+                <p class="font-semibold">v2.3.1</p>
+              </div>
+              <div>
+                <p class="text-dark-2 text-sm mb-1">特征集版本</p>
+                <p class="font-semibold">features_v4.2</p>
+              </div>
+              <div>
+                <p class="text-dark-2 text-sm mb-1">数据时间窗</p>
+                <p class="font-semibold">2022-01-01 至 2023-06-30</p>
+              </div>
+              <div>
+                <p class="text-dark-2 text-sm mb-1">训练完成时间</p>
+                <p class="font-semibold">预计 2023-07-15 22:45</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-dark-2 text-sm mb-1">模型校验码</p>
+              <p
+                class="font-mono text-sm bg-light-1 p-2 rounded-lg overflow-x-auto scrollbar-hide"
+              >
+                7a4f9d2e8c5b1a3f7e9d4c6b2a5f8e7d1c3b5a8f9e6d4c2b1a7f8e9d6c4b
+              </p>
+            </div>
+            <div>
+              <p class="text-dark-2 text-sm mb-1">超参数</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <div class="bg-light-1 p-2 rounded">
+                  <span class="font-medium"> 学习率: </span>
+                  0.001 (带衰减)
+                </div>
+                <div class="bg-light-1 p-2 rounded">
+                  <span class="font-medium"> 批大小: </span>
+                  64
+                </div>
+                <div class="bg-light-1 p-2 rounded">
+                  <span class="font-medium"> LSTM层数: </span>
+                  2
+                </div>
+                <div class="bg-light-1 p-2 rounded">
+                  <span class="font-medium"> 隐藏层维度: </span>
+                  128
+                </div>
+                <div class="bg-light-1 p-2 rounded">
+                  <span class="font-medium"> Dropout: </span>
+                  0.2
+                </div>
+                <div class="bg-light-1 p-2 rounded">
+                  <span class="font-medium"> 优化器: </span>
+                  Adam
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="text-dark-2 text-sm mb-1">局限性</p>
+              <div
+                class="bg-warning/10 border border-warning/20 rounded-lg p-3 text-sm"
+              >
+                <ul class="list-disc list-inside space-y-1 text-dark">
+                  <li>对突发市场变化（如新品发布、重大促销）预测能力有限</li>
+                  <li>在数据稀疏区域（如新应用）预测误差较大</li>
+                  <li>长周期（>14天）预测准确率显著下降</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- [/MODULE] w9x_模型卡 -- 以卡片形式汇总模型元数据（版本、特征集、数据时间窗、训练超参数、局限性），并提供模型文件与校验码下载 -->
+        <!-- [MODULE] y0z_训练日志与导出 -->
+        <div
+          class="bg-white rounded-xl shadow-card p-6 card-transition hover:shadow-card-hover"
+        >
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-dark">训练日志与导出</h2>
+            <div class="flex space-x-2">
+              <button class="text-dark-2 hover:text-primary transition-colors">
+                <i class="fas fa-ellipsis-v"> </i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-6">
+            <h3 class="text-dark font-semibold mb-4">导出选项</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                class="border border-light-2 hover:border-primary bg-white text-dark px-4 py-3 rounded-lg flex items-center justify-center transition-all"
+              >
+                <i class="fas fa-file-excel text-success text-xl mr-3"> </i>
+                <div class="text-left">
+                  <div class="font-medium">导出指标数据</div>
+                  <div class="text-dark-2 text-sm">Excel格式</div>
+                </div>
+              </button>
+              <button
+                class="border border-light-2 hover:border-primary bg-white text-dark px-4 py-3 rounded-lg flex items-center justify-center transition-all"
+              >
+                <i class="fas fa-file-pdf text-danger text-xl mr-3"> </i>
+                <div class="text-left">
+                  <div class="font-medium">导出完整报告</div>
+                  <div class="text-dark-2 text-sm">PDF格式</div>
+                </div>
+              </button>
+              <button
+                class="border border-light-2 hover:border-primary bg-white text-dark px-4 py-3 rounded-lg flex items-center justify-center transition-all"
+              >
+                <i class="fas fa-file-code text-info text-xl mr-3"> </i>
+                <div class="text-left">
+                  <div class="font-medium">导出模型代码</div>
+                  <div class="text-dark-2 text-sm">Python脚本</div>
+                </div>
+              </button>
+              <button
+                class="border border-light-2 hover:border-primary bg-white text-dark px-4 py-3 rounded-lg flex items-center justify-center transition-all"
+              >
+                <i class="fas fa-database text-warning text-xl mr-3"> </i>
+                <div class="text-left">
+                  <div class="font-medium">导出可视化数据</div>
+                  <div class="text-dark-2 text-sm">JSON格式</div>
+                </div>
+              </button>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-dark font-semibold">最近训练记录</h3>
+              <button class="text-primary text-sm hover:underline">
+                查看全部
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-light-2">
+                <thead>
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      模型名称
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      状态
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      完成时间
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-dark-2 uppercase tracking-wider"
+                    >
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-light-2">
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">LSTM_v2.3.1</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success"
+                      >
+                        训练中
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-dark-2">
+                      进行中
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <button class="text-primary hover:text-primary/80 mr-3">
+                        查看
+                      </button>
+                      <button class="text-dark-2 hover:text-primary">
+                        日志
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">LSTM_v2.3.0</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success"
+                      >
+                        已完成
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-dark-2">
+                      2023-07-10 14:32
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <button class="text-primary hover:text-primary/80 mr-3">
+                        查看
+                      </button>
+                      <button class="text-dark-2 hover:text-primary">
+                        日志
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">GRU_v1.1.2</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success"
+                      >
+                        已完成
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-dark-2">
+                      2023-07-05 09:15
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <button class="text-primary hover:text-primary/80 mr-3">
+                        查看
+                      </button>
+                      <button class="text-dark-2 hover:text-primary">
+                        日志
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-light-1/50 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">ARIMA_v3.0.1</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger"
+                      >
+                        已失败
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-dark-2">
+                      2023-07-01 16:48
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <button class="text-primary hover:text-primary/80 mr-3">
+                        查看
+                      </button>
+                      <button class="text-dark-2 hover:text-primary">
+                        日志
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- [/MODULE] y0z_训练日志与导出 -- 放置实时训练日志列表或导出按钮 -->
+      </div>
+      <!-- [/MODULE] u8v_模型卡与产出区 -- 左侧为模型卡，右侧为训练日志与导出 -->
+    </div>
+    <!-- [/MODULE] a1b_主内容区域 -- 包含训练概览区、数据与特征区、训练过程区、训练结果与评估区、模型解释区、模型卡与产出区等模块 -->
+    <!-- [JSMOD] z1a_图表初始化 -->
+    <script id="chart-initialization">
+      // 页面加载时初始化渲染
+              document.addEventListener('DOMContentLoaded', () => {
+                  // 初始化所有图表
+                  initDataDistributionChart();
+                  initMissingValuesChart();
+                  initTimeCoverageChart();
+                  initFeatureImportanceChart();
+                  initTrainingMetricsChart();
+                  initLearningRateChart();
+                  initResourceUsageChart();
+                  initTopKHitRateChart();
+                  initErrorDistributionChart();
+                  initGroupPerformanceChart();
+                  initPredictionVsActualChart();
+                  initShapSummaryChart();
+                  initShapBeeswarmChart();
+
+                  // 监听窗口大小变化，调整图表大小
+                  window.addEventListener('resize', () => {
+                      resizeAllCharts();
+                  });
+              });
+
+              // 数据分布图表
+              function initDataDistributionChart() {
+                  const chartDom = document.getElementById('data-distribution-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      color: ['#165DFF'],
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
+                          }
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['游戏', '社交', '工具', '娱乐', '教育', '新闻', '购物', '其他'],
+                          axisLabel: {
+                              rotate: 30,
+                              interval: 0
+                          }
+                      },
+                      yAxis: {
+                          type: 'value',
+                          name: '样本数量'
+                      },
+                      series: [
+                          {
+                              name: '数据量',
+                              type: 'bar',
+                              barWidth: '60%',
+                              data: [1280, 950, 820, 780, 650, 520, 480, 320]
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+
+                  // 存储图表实例，用于调整大小
+                  window.dataDistributionChart = myChart;
+              }
+
+              // 缺失值热力图
+              function initMissingValuesChart() {
+                  const chartDom = document.getElementById('missing-values-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      tooltip: {
+                          formatter: '{c}% 缺失'
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                          axisLabel: {
+                              interval: 0
+                          }
+                      },
+                      yAxis: {
+                          type: 'category',
+                          data: ['下载量', '排名', '评分', '评论数', '收入'],
+                          axisLabel: {
+                              interval: 0
+                          }
+                      },
+                      visualMap: {
+                          min: 0,
+                          max: 15,
+                          calculable: true,
+                          orient: 'horizontal',
+                          left: 'center',
+                          bottom: 0,
+                          inRange: {
+                              color: ['#F0F7FF', '#165DFF']
+                          }
+                      },
+                      series: [
+                          {
+                              name: '缺失值比例',
+                              type: 'heatmap',
+                              data: [
+                                  [0, 0, 2.3], [0, 1, 1.1], [0, 2, 0.5], [0, 3, 3.2], [0, 4, 8.7],
+                                  [1, 0, 1.8], [1, 1, 0.7], [1, 2, 0.3], [1, 3, 2.5], [1, 4, 6.2],
+                                  [2, 0, 3.5], [2, 1, 1.5], [2, 2, 0.8], [2, 3, 4.1], [2, 4, 9.3],
+                                  [3, 0, 2.1], [3, 1, 0.9], [3, 2, 0.4], [3, 3, 2.8], [3, 4, 7.5],
+                                  [4, 0, 1.5], [4, 1, 0.6], [4, 2, 0.2], [4, 3, 2.1], [4, 4, 5.8],
+                                  [5, 0, 2.8], [5, 1, 1.3], [5, 2, 0.7], [5, 3, 3.5], [5, 4, 8.1]
+                              ],
+                              label: {
+                                  show: true,
+                                  formatter: function(params) {
+                                      return params.data[2] + '%';
+                                  },
+                                  fontSize: 10
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.missingValuesChart = myChart;
+              }
+
+              // 时间覆盖率图表
+              function initTimeCoverageChart() {
+                  const chartDom = document.getElementById('time-coverage-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      color: ['#36CFC9'],
+                      tooltip: {
+                          trigger: 'axis',
+                          formatter: '{b}: {c}%'
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          boundaryGap: false,
+                          data: ['1月', '2月', '3月', '4月', '5月', '6月']
+                      },
+                      yAxis: {
+                          type: 'value',
+                          max: 100,
+                          name: '覆盖率'
+                      },
+                      series: [
+                          {
+                              name: '数据覆盖率',
+                              type: 'line',
+                              stack: 'Total',
+                              data: [92, 88, 95, 90, 96, 94],
+                              smooth: true,
+                              markLine: {
+                                  data: [
+                                      { type: 'average', name: '平均值' }
+                                  ]
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.timeCoverageChart = myChart;
+              }
+
+              // 特征重要性图表
+              function initFeatureImportanceChart() {
+                  const chartDom = document.getElementById('feature-importance-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      color: ['#FAAD14'],
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
+                          }
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'value',
+                          name: '重要性分数'
+                      },
+                      yAxis: {
+                          type: 'category',
+                          data: ['昨日排名', '下载量', '评论数', '评分', '是否周末', '价格变动', '广告投放', '历史波动率'],
+                          inverse: true
+                      },
+                      series: [
+                          {
+                              name: '特征重要性',
+                              type: 'bar',
+                              data: [0.82, 0.75, 0.63, 0.58, 0.42, 0.35, 0.28, 0.21]
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.featureImportanceChart = myChart;
+              }
+
+              // 训练指标图表
+              function initTrainingMetricsChart() {
+                  const chartDom = document.getElementById('training-metrics-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  // 生成模拟训练数据
+                  const epochs = 34;
+                  const trainLoss = [];
+                  const valLoss = [];
+                  const trainMAE = [];
+                  const valMAE = [];
+
+                  // 生成模拟数据
+                  for (let i = 1; i <= epochs; i++) {
+                      // 指数衰减的损失值
+                      trainLoss.push(0.3 * Math.exp(-i/15) + 0.05 + Math.random() * 0.02);
+                      valLoss.push(0.35 * Math.exp(-i/18) + 0.07 + Math.random() * 0.03);
+                      trainMAE.push(0.2 * Math.exp(-i/15) + 0.04 + Math.random() * 0.01);
+                      valMAE.push(0.25 * Math.exp(-i/18) + 0.05 + Math.random() * 0.02);
+                  }
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'axis'
+                      },
+                      legend: {
+                          data: ['训练 Loss', '验证 Loss', '训练 MAE', '验证 MAE'],
+                          top: 0
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'value',
+                          name: 'Epoch'
+                      },
+                      yAxis: [
+                          {
+                              type: 'value',
+                              name: 'Loss',
+                              min: 0,
+                              max: 0.4,
+                              position: 'left',
+                              axisLine: {
+                                  show: true,
+                                  lineStyle: {
+                                      color: '#165DFF'
+                                  }
+                              },
+                              axisLabel: {
+                                  formatter: '{value}'
+                              }
+                          },
+                          {
+                              type: 'value',
+                              name: 'MAE',
+                              min: 0,
+                              max: 0.3,
+                              position: 'right',
+                              axisLine: {
+                                  show: true,
+                                  lineStyle: {
+                                      color: '#FAAD14'
+                                  }
+                              },
+                              axisLabel: {
+                                  formatter: '{value}'
+                              },
+                              splitLine: {
+                                  show: false
+                              }
+                          }
+                      ],
+                      series: [
+                          {
+                              name: '训练 Loss',
+                              type: 'line',
+                              yAxisIndex: 0,
+                              data: trainLoss,
+                              smooth: true,
+                              lineStyle: {
+                                  color: '#165DFF',
+                                  width: 2
+                              },
+                              symbol: 'none'
+                          },
+                          {
+                              name: '验证 Loss',
+                              type: 'line',
+                              yAxisIndex: 0,
+                              data: valLoss,
+                              smooth: true,
+                              lineStyle: {
+                                  color: '#165DFF',
+                                  width: 2,
+                                  type: 'dashed'
+                              },
+                              symbol: 'none'
+                          },
+                          {
+                              name: '训练 MAE',
+                              type: 'line',
+                              yAxisIndex: 1,
+                              data: trainMAE,
+                              smooth: true,
+                              lineStyle: {
+                                  color: '#FAAD14',
+                                  width: 2
+                              },
+                              symbol: 'none'
+                          },
+                          {
+                              name: '验证 MAE',
+                              type: 'line',
+                              yAxisIndex: 1,
+                              data: valMAE,
+                              smooth: true,
+                              lineStyle: {
+                                  color: '#FAAD14',
+                                  width: 2,
+                                  type: 'dashed'
+                              },
+                              symbol: 'none'
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.trainingMetricsChart = myChart;
+              }
+
+              // 学习率图表
+              function initLearningRateChart() {
+                  const chartDom = document.getElementById('learning-rate-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  // 生成学习率数据
+                  const epochs = 34;
+                  const learningRate = [];
+                  let lr = 0.002;
+
+                  for (let i = 1; i <= epochs; i++) {
+                      if (i % 10 === 0) {
+                          lr *= 0.5; // 每10个epoch学习率减半
+                      }
+                      learningRate.push(lr);
+                  }
+
+                  const option = {
+                      color: ['#FF4D4F'],
+                      tooltip: {
+                          trigger: 'axis',
+                          formatter: 'Epoch {b}: {c}'
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: Array.from({length: epochs}, (_, i) => i + 1),
+                          name: 'Epoch'
+                      },
+                      yAxis: {
+                          type: 'log',
+                          name: '学习率',
+                          axisLabel: {
+                              formatter: '{value}'
+                          }
+                      },
+                      series: [
+                          {
+                              name: '学习率',
+                              type: 'line',
+                              data: learningRate,
+                              step: 'end',
+                              lineStyle: {
+                                  width: 2
+                              },
+                              symbol: 'none'
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.learningRateChart = myChart;
+              }
+
+              // 资源使用图表
+              function initResourceUsageChart() {
+                  const chartDom = document.getElementById('resource-usage-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'axis'
+                      },
+                      legend: {
+                          data: ['GPU使用率', 'CPU使用率'],
+                          bottom: 0
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '15%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          boundaryGap: false,
+                          data: ['0s', '10s', '20s', '30s', '40s', '50s', '60s'],
+                          name: '时间'
+                      },
+                      yAxis: {
+                          type: 'value',
+                          max: 100,
+                          name: '使用率 (%)'
+                      },
+                      series: [
+                          {
+                              name: 'GPU使用率',
+                              type: 'line',
+                              data: [65, 78, 82, 75, 88, 82, 76],
+                              lineStyle: {
+                                  color: '#722ED1'
+                              },
+                              areaStyle: {
+                                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                      { offset: 0, color: 'rgba(114, 46, 209, 0.3)' },
+                                      { offset: 1, color: 'rgba(114, 46, 209, 0)' }
+                                  ])
+                              },
+                              smooth: true,
+                              symbol: 'none'
+                          },
+                          {
+                              name: 'CPU使用率',
+                              type: 'line',
+                              data: [35, 42, 38, 45, 40, 36, 32],
+                              lineStyle: {
+                                  color: '#FAAD14'
+                              },
+                              areaStyle: {
+                                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                      { offset: 0, color: 'rgba(250, 173, 20, 0.3)' },
+                                      { offset: 1, color: 'rgba(250, 173, 20, 0)' }
+                                  ])
+                              },
+                              smooth: true,
+                              symbol: 'none'
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.resourceUsageChart = myChart;
+              }
+
+              // Top-K命中率图表
+              function initTopKHitRateChart() {
+                  const chartDom = document.getElementById('topk-hit-rate-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      color: ['#52C41A'],
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
+                          },
+                          formatter: 'Top-{b}: {c}%'
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['5', '10', '20', '50', '100'],
+                          name: 'K值'
+                      },
+                      yAxis: {
+                          type: 'value',
+                          max: 100,
+                          name: '命中率 (%)'
+                      },
+                      series: [
+                          {
+                              name: '命中率',
+                              type: 'bar',
+                              data: [42, 65, 78, 89, 94],
+                              label: {
+                                  show: true,
+                                  position: 'top',
+                                  formatter: '{c}%'
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.topKHitRateChart = myChart;
+              }
+
+              // 误差分布图表
+              function initErrorDistributionChart() {
+                  const chartDom = document.getElementById('error-distribution-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      color: ['#1890FF'],
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
+                          }
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['[-0.2,-0.15)', '[-0.15,-0.1)', '[-0.1,-0.05)', '[-0.05,0)', '[0,0.05)', '[0.05,0.1)', '[0.1,0.15)', '[0.15,0.2]'],
+                          axisLabel: {
+                              interval: 0,
+                              rotate: 30
+                          },
+                          name: '误差区间'
+                      },
+                      yAxis: {
+                          type: 'value',
+                          name: '样本数量'
+                      },
+                      series: [
+                          {
+                              name: '误差分布',
+                              type: 'bar',
+                              data: [12, 35, 88, 156, 142, 76, 32, 15]
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.errorDistributionChart = myChart;
+              }
+
+              // 分组表现图表
+              function initGroupPerformanceChart() {
+                  const chartDom = document.getElementById('group-performance-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  const option = {
+                      tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                              type: 'shadow'
+                          }
+                      },
+                      legend: {
+                          data: ['MAE'],
+                          bottom: 0
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '15%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          data: ['游戏', '社交', '工具', '娱乐', '教育', '其他'],
+                          axisLabel: {
+                              rotate: 30,
+                              interval: 0
+                          }
+                      },
+                      yAxis: {
+                          type: 'value',
+                          name: 'MAE'
+                      },
+                      series: [
+                          {
+                              name: 'MAE',
+                              type: 'bar',
+                              data: [0.058, 0.062, 0.075, 0.068, 0.082, 0.093],
+                              itemStyle: {
+                                  color: function(params) {
+                                      const colorList = ['#52C41A', '#52C41A', '#FAAD14', '#FAAD14', '#FF4D4F', '#FF4D4F'];
+                                      return colorList[params.dataIndex];
+                                  }
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.groupPerformanceChart = myChart;
+              }
+
+              // 预测vs实际值对比图表
+              function initPredictionVsActualChart() {
+                  const chartDom = document.getElementById('prediction-vs-actual-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  // 生成模拟数据
+                  const actual = [];
+                  const predicted = [];
+
+                  for (let i = 1; i <= 14; i++) {
+                      actual.push(50 + Math.random() * 30);
+                      // 预测值与实际值有一定相关性，但有误差
+                      predicted.push(actual[i-1] * (0.9 + Math.random() * 0.2) + (Math.random() - 0.5) * 5);
+                  }
+
+                  const option = {
+                      color: ['#165DFF', '#FAAD14'],
+                      tooltip: {
+                          trigger: 'axis'
+                      },
+                      legend: {
+                          data: ['实际值', '预测值'],
+                          bottom: 0
+                      },
+                      grid: {
+                          left: '3%',
+                          right: '4%',
+                          bottom: '15%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'category',
+                          boundaryGap: false,
+                          data: Array.from({length: 14}, (_, i) => `Day ${i+1}`),
+                          name: '天数'
+                      },
+                      yAxis: {
+                          type: 'value',
+                          name: '排名'
+                      },
+                      series: [
+                          {
+                              name: '实际值',
+                              type: 'line',
+                              data: actual,
+                              smooth: true,
+                              symbol: 'circle',
+                              symbolSize: 6
+                          },
+                          {
+                              name: '预测值',
+                              type: 'line',
+                              data: predicted,
+                              smooth: true,
+                              symbol: 'circle',
+                              symbolSize: 6,
+                              lineStyle: {
+                                  type: 'dashed'
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.predictionVsActualChart = myChart;
+              }
+
+              // SHAP Summary图表
+              function initShapSummaryChart() {
+                  const chartDom = document.getElementById('shap-summary-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  // 模拟SHAP值数据
+                  const features = ['昨日排名', '下载量', '评论数', '评分', '是否周末', '价格变动', '广告投放', '历史波动率'];
+                  const data = [];
+
+                  features.forEach((feature, index) => {
+                      // 为每个特征生成20个随机SHAP值
+                      for (let i = 0; i < 20; i++) {
+                          const value = (Math.random() - 0.5) * 0.8; // SHAP值范围
+                          const absValue = Math.abs(value);
+
+                          data.push([
+                              feature,
+                              value,
+                              absValue,
+                              index // 用于排序
+                          ]);
+                      }
+                  });
+
+                  // 按特征重要性排序
+                  features.reverse();
+
+                  const option = {
+                      tooltip: {
+                          formatter: function(params) {
+                              return `${params.data[0]}: SHAP值 = ${params.data[1].toFixed(3)}`;
+                          }
+                      },
+                      grid: {
+                          left: '15%',
+                          right: '8%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'value',
+                          name: 'SHAP值',
+                          axisLine: {
+                              show: true
+                          }
+                      },
+                      yAxis: {
+                          type: 'category',
+                          data: features,
+                          axisLine: {
+                              show: false
+                          },
+                          axisTick: {
+                              show: false
+                          }
+                      },
+                      series: [
+                          {
+                              type: 'scatter',
+                              symbolSize: function(data) {
+                                  return data[2] * 30; // 点大小与SHAP绝对值相关
+                              },
+                              data: data,
+                              itemStyle: {
+                                  color: function(params) {
+                                      // 根据SHAP值正负设置颜色
+                                      return params.data[1] > 0 ? '#FF4D4F' : '#165DFF';
+                                  },
+                                  opacity: 0.7
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.predictionVsActualChart = myChart;
+              }
+
+              // SHAP Summary图表
+              function initShapSummaryChart() {
+                  const chartDom = document.getElementById('shap-summary-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  // 模拟SHAP摘要数据
+                  const features = ['昨日排名', '下载量', '评论数', '评分', '是否周末', '价格变动', '广告投放', '历史波动率'];
+                  const data = [];
+
+                  features.forEach((feature, index) => {
+                      // 为每个特征生成SHAP值分布
+                      for (let i = 0; i < 30; i++) {
+                          const value = (Math.random() - 0.5) * (0.5 + index * 0.05); // 特征重要性递增
+                          data.push([
+                              feature,
+                              value,
+                              Math.abs(value),
+                              index // 用于排序
+                          ]);
+                      }
+                  });
+
+                  // 按特征重要性排序
+                  features.reverse();
+
+                  const option = {
+                      title: {
+                          text: '特征对模型输出的影响',
+                          left: 'center',
+                          textStyle: {
+                              fontSize: 14,
+                              fontWeight: 'normal'
+                          }
+                      },
+                      tooltip: {
+                          formatter: function(params) {
+                              return `${params.data[0]}: SHAP值 = ${params.data[1].toFixed(3)}`;
+                          }
+                      },
+                      grid: {
+                          left: '15%',
+                          right: '8%',
+                          bottom: '10%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'value',
+                          name: 'SHAP值',
+                          axisLine: {
+                              show: true
+                          }
+                      },
+                      yAxis: {
+                          type: 'category',
+                          data: features,
+                          axisLine: {
+                              show: false
+                          },
+                          axisTick: {
+                              show: false
+                          }
+                      },
+                      series: [
+                          {
+                              type: 'scatter',
+                              symbolSize: 6,
+                              data: data,
+                              itemStyle: {
+                                  color: function(params) {
+                                      // 根据SHAP值正负设置颜色
+                                      return params.data[1] > 0 ? '#FF4D4F' : '#165DFF';
+                                  },
+                                  opacity: 0.7
+                              }
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.shapSummaryChart = myChart;
+              }
+
+              // SHAP蜂群图
+              function initShapBeeswarmChart() {
+                  const chartDom = document.getElementById('shap-beeswarm-chart');
+                  const myChart = echarts.init(chartDom);
+
+                  // 模拟SHAP蜂群图数据
+                  const features = ['昨日排名', '下载量', '评论数', '评分', '是否周末', '价格变动', '广告投放', '历史波动率'];
+                  const data = [];
+
+                  features.forEach((feature, index) => {
+                      // 为每个特征生成SHAP值分布
+                      for (let i = 0; i < 20; i++) {
+                          const value = (Math.random() - 0.5) * 0.8;
+                          const featureValue = Math.random(); // 特征值归一化
+
+                          data.push([
+                              feature,
+                              value,
+                              featureValue,
+                              index
+                          ]);
+                      }
+                  });
+
+                  const option = {
+                      tooltip: {
+                          formatter: function(params) {
+                              return `${params.data[0]}: SHAP值 = ${params.data[1].toFixed(3)}<br>特征值: ${params.data[2].toFixed(2)}`;
+                          }
+                      },
+                      grid: {
+                          left: '15%',
+                          right: '8%',
+                          bottom: '3%',
+                          containLabel: true
+                      },
+                      xAxis: {
+                          type: 'value',
+                          name: 'SHAP值',
+                          axisLine: {
+                              show: true
+                          }
+                      },
+                      yAxis: {
+                          type: 'category',
+                          data: features,
+                          axisLine: {
+                              show: false
+                          },
+                          axisTick: {
+                              show: false
+                          }
+                      },
+                      series: [
+                          {
+                              type: 'scatter',
+                              data: data,
+                              itemStyle: {
+                                  color: function(params) {
+                                      // 根据特征值大小设置颜色梯度
+                                      const hue = params.data[2] * 120; // 0-120色相，从红色到绿色
+      return `hsl(${hue}, 70%, 50%)`;
+                                  },
+                                  opacity: 0.7
+                              },
+                              symbolSize: 6
+                          }
+                      ]
+                  };
+
+                  myChart.setOption(option);
+                  window.shapBeeswarmChart = myChart;
+              }
+
+              // 调整所有图表大小
+              function resizeAllCharts() {
+                  // 延迟执行，避免频繁调整
+                  clearTimeout(window.resizeTimer);
+                  window.resizeTimer = setTimeout(() => {
+                      if (window.dataDistributionChart) window.dataDistributionChart.resize();
+                      if (window.missingValuesChart) window.missingValuesChart.resize();
+                      if (window.timeCoverageChart) window.timeCoverageChart.resize();
+                      if (window.featureImportanceChart) window.featureImportanceChart.resize();
+                      if (window.trainingMetricsChart) window.trainingMetricsChart.resize();
+                      if (window.learningRateChart) window.learningRateChart.resize();
+                      if (window.resourceUsageChart) window.resourceUsageChart.resize();
+                      if (window.topKHitRateChart) window.topKHitRateChart.resize();
+                      if (window.errorDistributionChart) window.errorDistributionChart.resize();
+                      if (window.groupPerformanceChart) window.groupPerformanceChart.resize();
+                      if (window.predictionVsActualChart) window.predictionVsActualChart.resize();
+                      if (window.shapSummaryChart) window.shapSummaryChart.resize();
+                      if (window.shapBeeswarmChart) window.shapBeeswarmChart.resize();
+                  }, 300);
+              }
+    </script>
+    <!-- [/JSMOD] z1a_图表初始化 -- 初始化所有ECharts图表，包括数据分布、缺失值热力图、特征重要性、训练指标等图表，并实现窗口大小变化时的图表自适应调整 -->
+    <!-- [JSMOD] b2c_训练控制功能 -->
+    <script id="training-controls">
+      // 页面加载时初始化渲染
+              document.addEventListener('DOMContentLoaded', () => {
+                  // 初始化训练控制功能
+                  initTrainingControls();
+              });
+
+              // 初始化训练控制功能
+              function initTrainingControls() {
+                  // 获取暂停/继续按钮
+                  const pauseButton = document.querySelector('button:has(.fa-pause)');
+
+                  // 训练状态切换
+                  if (pauseButton) {
+                      pauseButton.addEventListener('click', function() {
+                          const icon = this.querySelector('i');
+                          const text = this.querySelector('span');
+
+                          if (icon.classList.contains('fa-pause')) {
+                              // 暂停训练
+                              icon.classList.remove('fa-pause');
+                              icon.classList.add('fa-play');
+                              text.textContent = ' 继续';
+                              this.classList.remove('bg-danger/10', 'text-danger');
+                              this.classList.add('bg-success/10', 'text-success');
+
+                              // 更新状态标签
+                              updateTrainingStatus('已暂停', 'warning');
+
+                              // 模拟暂停训练的日志输出
+                              addTrainingLog('训练已暂停');
+                          } else {
+                              // 继续训练
+                              icon.classList.remove('fa-play');
+                              icon.classList.add('fa-pause');
+                              text.textContent = ' 暂停';
+                              this.classList.remove('bg-success/10', 'text-success');
+                              this.classList.add('bg-danger/10', 'text-danger');
+
+                              // 更新状态标签
+                              updateTrainingStatus('训练中 (Epoch 34/100)', 'success');
+
+                              // 模拟继续训练的日志输出
+                              addTrainingLog('训练已恢复');
+                          }
+                      });
+                  }
+
+                  // 初始化日志自动滚动
+                  initLogAutoScroll();
+              }
+
+              // 更新训练状态
+              function updateTrainingStatus(status, type = 'success') {
+                  const statusElements = document.querySelectorAll('.inline-flex.items-center.px-2.5.py-0.5.rounded-full.text-xs.font-medium');
+
+                  statusElements.forEach(el => {
+                      // 更新文本内容
+                      const textElement = el.querySelector('span:not(.animate-pulse)');
+                      if (textElement) {
+                          textElement.textContent = status;
+                      }
+
+                      // 更新颜色
+                      el.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+
+                      if (type === 'success') {
+                          el.classList.add('bg-success/10', 'text-success');
+                          // 添加动画点
+                          if (!el.querySelector('.animate-pulse')) {
+                              const pulseDot = document.createElement('span');
+                              pulseDot.className = 'animate-pulse mr-1.5 h-2 w-2 rounded-full bg-success';
+                              el.prepend(pulseDot);
+                          }
+                      } else if (type === 'warning') {
+                          el.classList.add('bg-warning/10', 'text-warning');
+                          // 移除动画点
+                          const pulseDot = el.querySelector('.animate-pulse');
+                          if (pulseDot) {
+                              pulseDot.remove();
+                          }
+                      }
+                  });
+              }
+
+              // 添加训练日志
+              function addTrainingLog(message) {
+                  const logContainer = document.querySelector('.bg-dark\\/5.rounded-lg.p-4.h-40.overflow-y-auto.scrollbar-hide.text-sm.font-mono .space-y-2');
+
+                  if (logContainer) {
+                      // 创建新日志项
+                      const now = new Date();
+                      const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+                      const logItem = document.createElement('div');
+                      logItem.className = 'flex items-start';
+                      logItem.innerHTML = `
+
+      <span class="text-primary mr-2">[${timeString}]</span>
+        <span>${message}</span>
+
+        `;
+
+                      // 添加到容器顶部
+                      logContainer.prepend(logItem);
+
+                      // 限制日志数量
+                      if (logContainer.children.length > 10) {
+                          logContainer.removeChild(logContainer.lastChild);
+                      }
+                  }
+              }
+
+              // 初始化日志自动滚动
+              function initLogAutoScroll() {
+                  const logContainer = document.querySelector('.bg-dark\\/5.rounded-lg.p-4.h-40.overflow-y-auto.scrollbar-hide.text-sm.font-mono');
+
+                  if (logContainer) {
+                      // 自动滚动到底部
+                      logContainer.scrollTop = logContainer.scrollHeight;
+                  }
+              }
+    </script>
+    <!-- [/JSMOD] b2c_训练控制功能 -- 实现训练过程的暂停/继续控制、训练状态更新、日志输出和自动滚动等功能 -->
+    <!-- [JSMOD] d3e_特征表格交互 -->
+    <script id="feature-table-interactions">
+      // 页面加载时初始化渲染
+              document.addEventListener('DOMContentLoaded', () => {
+                  // 初始化特征表格交互
+                  initFeatureTable();
+              });
+
+              // 初始化特征表格交互
+              function initFeatureTable() {
+                  // 获取查看全部特征按钮
+                  const viewAllButton = document.querySelector('button:text("查看全部 24 个特征")');
+
+                  if (viewAllButton) {
+                      viewAllButton.addEventListener('click', function() {
+                          const tableBody = document.querySelector('.min-w-full.divide-y.divide-light-2 tbody');
+
+                          if (tableBody && tableBody.children.length <= 5) {
+                              // 模拟加载更多特征
+                              const additionalFeatures = [
+                                  { name: '价格变动', type: '数值型', source: '应用商店', preprocessing: '标准化' },
+                                  { name: '广告投放', type: '数值型', source: '营销数据', 'preprocessing': '对数变换+标准化' },
+                                  { name: '历史波动率', type: '数值型', source: '计算特征', 'preprocessing': '标准化' },
+                                  { name: '用户留存率', type: '数值型', source: '分析数据', 'preprocessing': '标准化' },
+                                  { name: '社交分享量', type: '数值型', source: '第三方API', 'preprocessing': '对数变换+标准化' },
+                                  { name: '应用大小', type: '数值型', source: '应用商店', 'preprocessing': '对数变换' },
+                                  { name: '更新频率', type: '数值型', source: '应用商店', 'preprocessing': '标准化' },
+                                  { name: '是否节假日', type: '类别型', source: '时间特征', 'preprocessing': '独热编码' },
+                                  { name: '竞品表现', type: '数值型', source: '榜单数据', 'preprocessing': '标准化' },
+                                  { name: '关键词热度', type: '数值型', source: '搜索数据', 'preprocessing': '标准化' }
+                              ];
+
+                              // 添加更多特征行
+                              additionalFeatures.forEach(feature => {
+                                  const row = document.createElement('tr');
+                                  row.className = 'hover:bg-light-1/50 transition-colors';
+                                  row.innerHTML = `
+
+      <td class="px-4 py-3 whitespace-nowrap">${feature.name}</td>
+        <td class="px-4 py-3 whitespace-nowrap">${feature.type}</td>
+          <td class="px-4 py-3 whitespace-nowrap">${feature.source}</td>
+            <td class="px-4 py-3 whitespace-nowrap">${feature.preprocessing}</td>
+
+            `;
+                                  tableBody.appendChild(row);
+                              });
+
+                              // 更新按钮文本
+                              this.innerHTML = `
+      收起特征列表 <i class="fas fa-chevron-up ml-1">
+      </i>
+      `;
+                          } else {
+                              // 收起特征列表
+                              const rows = tableBody.querySelectorAll('tr:nth-child(n+6)');
+                              rows.forEach(row => row.remove());
+
+                              // 更新按钮文本
+                              this.innerHTML = `
+      查看全部 24 个特征 <i class="fas fa-chevron-down ml-1">
+      </i>
+      `;
+                          }
+                      });
+                  }
+              }
+    </script>
+    <!-- [/JSMOD] d3e_特征表格交互 -- 实现特征表格的展开/收起功能，加载更多特征数据 -->
+    <!-- [JSMOD] f4g_样本选择交互 -->
+    <script id="sample-selection-interactions">
+      // 页面加载时初始化渲染
+              document.addEventListener('DOMContentLoaded', () => {
+                  // 初始化样本选择交互
+                  initSampleSelection();
+              });
+
+              // 初始化样本选择交互
+              function initSampleSelection() {
+                  // 获取样本选择下拉框
+                  const sampleSelect = document.querySelector('select:has(option:contains("样本 #145"))');
+
+                  if (sampleSelect) {
+                      sampleSelect.addEventListener('change', function() {
+                          // 更新SHAP蜂群图
+                          updateShapBeeswarmChart(this.value);
+                      });
+                  }
+
+                  // 获取生成解释报告按钮
+                  const generateReportButton = document.querySelector('button:text("生成解释报告")');
+
+                  if (generateReportButton) {
+                      generateReportButton.addEventListener('click', function() {
+                          // 模拟生成报告
+                          this.textContent = '生成中...';
+                          this.disabled = true;
+
+                          setTimeout(() => {
+                              this.textContent = '生成解释报告';
+                              this.disabled = false;
+
+                              // 显示成功消息
+                              alert('解释报告已生成！');
+                          }, 1500);
+                      });
+                  }
+              }
+
+              // 更新SHAP蜂群图
+              function updateShapBeeswarmChart(sampleName) {
+                  if (window.shapBeeswarmChart) {
+                      // 根据选择的样本更新图表数据
+                      const sampleIndex = parseInt(sampleName.split('#')[1]);
+
+                      // 重新生成SHAP蜂群图数据
+                      const features = ['昨日排名', '下载量', '评论数', '评分', '是否周末', '价格变动', '广告投放', '历史波动率'];
+                      const data = [];
+
+                      features.forEach((feature, index) => {
+                          // 根据样本不同，生成不同的SHAP值分布
+                          for (let i = 0; i < 20; i++) {
+                              const value = (Math.random() - 0.5) * 0.8 * (1 + sampleIndex * 0.01);
+                              const featureValue = Math.random();
+
+                              data.push([
+                                  feature,
+                                  value,
+                                  featureValue,
+                                  index
+                              ]);
+                          }
+                      });
+
+                      // 更新图表数据
+                      window.shapBeeswarmChart.setOption({
+                          series: [
+                              {
+                                  data: data
+                              }
+                          ]
+                      });
+                  }
+              }
+    </script>
+    <!-- [/JSMOD] f4g_样本选择交互 -- 实现样本选择下拉框交互和解释报告生成功能，根据选择的样本更新SHAP蜂群图 -->
+  </body>
+</html>

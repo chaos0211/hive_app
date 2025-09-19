@@ -5,23 +5,7 @@
       <!-- 时间范围 -->
       <div>
         <label class="block text-sm text-gray-500 mb-1">日期范围</label>
-        <div class="inline-flex rounded-full overflow-hidden bg-gray-100">
-          <button
-            class="px-4 py-2 text-sm"
-            :class="dateRangeModel === 7 ? activeBtn : normalBtn"
-            @click="onChangeDate(7)"
-          >7天</button>
-          <button
-            class="px-4 py-2 text-sm"
-            :class="dateRangeModel === 30 ? activeBtn : normalBtn"
-            @click="onChangeDate(30)"
-          >30天</button>
-          <button
-            class="px-4 py-2 text-sm"
-            :class="dateRangeModel === 90 ? activeBtn : normalBtn"
-            @click="onChangeDate(90)"
-          >90天</button>
-        </div>
+        <DateRangePills v-model="dateRangeModel" @update:modelValue="onChangeDate" />
       </div>
 
       <!-- 国家/地区 -->
@@ -137,6 +121,7 @@
 </template>
 
 <script setup lang="ts">
+import DateRangePills from '@/components/common/DateRangePills.vue'
 import { onMounted, ref, watch, computed } from 'vue'
 import http from '@/api/http'
 

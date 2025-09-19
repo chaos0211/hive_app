@@ -98,6 +98,12 @@ async def search_apps(
         date_to = date.today()
         date_from = date_to - timedelta(days=window)
 
+    # 规范化 genre：前端可能传入 "all"/"全部"/"所有分类" 表示不按类别过滤
+    if genre is not None:
+        g = (str(genre) or "").strip().lower()
+        if g in {"all", "*", "", "全部", "所有", "所有分类", "全部分类", "any"}:
+            genre = None
+
     where_clauses = []
     if country:
         where_clauses.append(AppRatings.country == country)
