@@ -19,7 +19,8 @@ const routes: RouteRecordRaw[] = [
       { path: '/app-compare', component: () => import('@/views/AppCompare.vue'), meta: { title: '应用对比' } },
       { path: '/bigscreen', component: () => import('@/views/BigScreen.vue'), meta: { title: '可视化大屏' } },
       { path: "/analytics", component: () => import("@/views/Analytics.vue"), meta: { title: "数据分析" } },
-      { path: "/predict", component: () => import("@/views/Predict.vue"), meta: { title: "数据预测" } }
+      { path: "/predict", component: () => import("@/views/Predict.vue"), meta: { title: "数据预测" } },
+      { path: "/train", component: () => import("@/views/Train.vue"), meta: { title: "数据预测" } }
 
 ]
   }

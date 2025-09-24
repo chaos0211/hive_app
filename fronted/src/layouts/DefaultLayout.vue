@@ -86,10 +86,10 @@
               </div>
               <ul class="mt-1 ml-6 space-y-1">
                 <li>
-                  <RouterLink to="/predict" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">数据预测</RouterLink>
+                  <RouterLink to="/train" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">模型训练</RouterLink>
                 </li>
                 <li>
-                  <RouterLink to="/cockpit" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">预测记录</RouterLink>
+                  <RouterLink to="/predict" class="block px-3 py-2 text-sm rounded-lg hover:bg-light-100">数据预测</RouterLink>
                 </li>
               </ul>
             </li>

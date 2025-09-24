@@ -1,36 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <!-- MySQL 元数据库配置 -->
-  <property>
-    <name>javax.jdo.option.ConnectionURL</name>
-    <value>jdbc:mysql://host.docker.internal:33309/hive_metastore?createDatabaseIfNotExist=true&amp;useSSL=false&amp;characterEncoding=UTF-8&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true</value>
-  </property>
-  <property>
-    <name>javax.jdo.option.ConnectionDriverName</name>
-    <value>com.mysql.cj.jdbc.Driver</value>
-  </property>
-  <property>
-    <name>javax.jdo.option.ConnectionUserName</name>
-    <value>hive</value>
-  </property>
-  <property>
-    <name>javax.jdo.option.ConnectionPassword</name>
-    <value>hive_pwd</value>
-  </property>
 
-  <!-- Hive 仓库目录 -->
+  <!-- ========= 基础 & 目录 ========= -->
+  <!-- 本地仓库目录（容器内），与 docker-compose 中 /tmp/hive/warehouse 对齐 -->
   <property>
     <name>hive.metastore.warehouse.dir</name>
-    <value>file:///Users/chaos/Documents/science/2025.8/hive_app/hive-warehouse</value>
+    <value>file:/tmp/hive/warehouse</value>
   </property>
 
-  <!-- Metastore URI -->
+  <!-- Scratch 临时目录（容器内） -->
   <property>
-    <name>hive.metastore.uris</name>
-    <value>thrift://localhost:9083</value>
+    <name>hive.exec.scratchdir</name>
+    <value>/tmp/hive/scratch</value>
   </property>
 
-  <!-- 动态分区 -->
+  <property>
+    <name>hive.exec.local.scratchdir</name>
+    <value>/tmp/hive/local_scratch</value>
+  </property>
+
+  <!-- 允许在本地模式下写入（避免本地 MapReduce 写出时报错） -->
+  <property>
+    <name>hive.exec.mode.local.auto</name>
+    <value>true</value>
+  </property>
+
+  <!-- ========= 执行引擎 ========= -->
+  <!-- 关闭 Tez/Spark 执行引擎，使用 MR，本地离线最稳妥 -->
+  <property>
+    <name>hive.execution.engine</name>
+    <value>mr</value>
+  </property>
+
+  <!-- 明确走 Local MR（与 “离线/不直连 Spark” 的目标一致） -->
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>local</value>
+  </property>
+  <property>
+    <name>mapred.job.tracker</name>
+    <value>local</value>
+  </property>
+
+  <!-- ========= 动态分区（离线分区装载常用） ========= -->
   <property>
     <name>hive.exec.dynamic.partition</name>
     <value>true</value>
@@ -39,8 +51,90 @@
     <name>hive.exec.dynamic.partition.mode</name>
     <value>nonstrict</value>
   </property>
+
+  <!-- ========= Parquet & 压缩 ========= -->
   <property>
-    <name>spark.sql.warehouse.dir</name>
-    <value>file:///Users/chaos/Documents/science/2025.8/hive_app/hive-warehouse</value>
+    <name>hive.default.fileformat</name>
+    <value>Parquet</value>
   </property>
+  <property>
+    <name>hive.default.fileformat.managed</name>
+    <value>Parquet</value>
+  </property>
+
+  <!-- 开启结果压缩 -->
+  <property>
+    <name>hive.exec.compress.output</name>
+    <value>true</value>
+  </property>
+  <!-- Parquet 使用 Snappy 压缩（compose 已安装/链接 libsnappy） -->
+  <property>
+    <name>parquet.compression</name>
+    <value>SNAPPY</value>
+  </property>
+
+  <!-- ========= 元存储 Metastore ========= -->
+  <!-- 注意：MySQL 运行在宿主机 Docker，容器内访问用 host.docker.internal:33309 -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:mysql://host.docker.internal:33309/hive?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&amp;characterEncoding=utf8</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.cj.jdbc.Driver</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>root</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>123456</value>
+  </property>
+
+  <!-- 3.x 推荐 schema 已初始化；若未初始化，先用 schematool 初始化后再置 true -->
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+  </property>
+
+  <!-- Metastore Thrift 端口 -->
+  <property>
+    <name>hive.metastore.port</name>
+    <value>9083</value>
+  </property>
+
+  <!-- 客户端/其他组件连接该 Metastore 的 URI（容器名可解析） -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hive-metastore:9083</value>
+  </property>
+
+  <!-- ========= 本地 FS & 权限宽松（离线更少踩坑） ========= -->
+  <!-- 使用本地文件系统，不依赖 HDFS；以下设置能减少本地写权限造成的失败 -->
+  <property>
+    <name>hive.server2.enable.doAs</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>dfs.client.use.datanode.hostname</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>hive.metastore.event.db.notification.api.auth</name>
+    <value>false</value>
+  </property>
+
+  <!-- ========= 结果抓取优化（避免小查询也走 MR）========= -->
+  <property>
+    <name>hive.fetch.task.conversion</name>
+    <value>more</value>
+  </property>
+
+  <!-- ========= SerDe / 兼容性 ========= -->
+  <property>
+    <name>hive.metastore.disallow.incompatible.col.type.changes</name>
+    <value>false</value>
+  </property>
+
 </configuration>
